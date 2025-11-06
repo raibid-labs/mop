@@ -1,0 +1,67 @@
+# MOP .gitignore
+
+# Vendor directory (managed by jsonnet-bundler)
+vendor/
+
+# Tanka output
+.tanka/
+
+# Helm charts (vendored)
+charts/
+
+# Environment-specific secrets
+*.secret.yaml
+*.secret.json
+secrets/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.log
+*.out
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Backups
+*.bak
+backups/
+
+# Local development
+.env
+.env.local
+
+# Kubernetes configs (may contain sensitive data)
+kubeconfig*
+!kubeconfig.example
+
+# Test outputs
+coverage/
+test-results/
+
+# Documentation builds
+docs/_build/
+docs/.doctrees/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Node
+node_modules/
+package-lock.json
+
+# Nushell
+*.nu-check-cache
