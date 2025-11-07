@@ -48,7 +48,7 @@
       'kubernetes.io/gce-pd',  // GKE example, adjust for your cloud provider
       {
         type: 'pd-standard',
-        replication-type: 'none',
+        'replication-type': 'none',
       },
       'WaitForFirstConsumer',
       'Delete',
@@ -61,7 +61,7 @@
       'kubernetes.io/gce-pd',  // GKE example, adjust for your cloud provider
       {
         type: 'pd-ssd',
-        replication-type: 'regional-pd',
+        'replication-type': 'regional-pd',
       },
       'WaitForFirstConsumer',
       'Retain',  // Retain for production data safety

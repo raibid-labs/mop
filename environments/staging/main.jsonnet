@@ -6,7 +6,9 @@ local namespace = import '../../lib/kubernetes/namespace.libsonnet';
 local rbac = import '../../lib/kubernetes/rbac.libsonnet';
 local storage = import '../../lib/kubernetes/storage.libsonnet';
 local network = import '../../lib/kubernetes/network.libsonnet';
-local obi = import '../../lib/obi.libsonnet';
+
+local rbacResources = rbac.new(config.environments.staging.namespace);
+local networkPolicies = network.new(config.environments.staging.namespace);
 
 {
   _config:: config.environments.staging,
@@ -17,23 +19,16 @@ local obi = import '../../lib/obi.libsonnet';
     'mop.io/version': config.version,
   }),
 
-  // RBAC configuration for all components
-  rbac: rbac.new(self._config.namespace),
-
   // Storage classes for staging (use standard storage)
   storage: storage.new()['dev-storage'],
 
-  // Network policies for component isolation
-  network: network.new(self._config.namespace),
+} + rbacResources + networkPolicies
 
-  // OBI eBPF instrumentation (Workstream 2)
-  obi: obi.new(self._config),
-
-  // TODO: Add remaining component deployments
+  // TODO: Add component deployments
   // Components will be added in subsequent workstreams:
+  // - OBI DaemonSet (Workstream 2)
   // - Alloy StatefulSet (Workstream 2)
   // - Tempo StatefulSet (Workstream 3)
   // - Mimir StatefulSet (Workstream 3)
   // - Loki StatefulSet (Workstream 3)
   // - Grafana Deployment (Workstream 3)
-}
