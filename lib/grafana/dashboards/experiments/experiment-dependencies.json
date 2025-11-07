@@ -1,0 +1,254 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "exp-dependencies-003",
+    "title": "OBI Experiment - Service Dependency Mapping",
+    "description": "Automatic service dependency discovery and visualization using eBPF data",
+    "tags": ["obi", "experiments", "dependencies", "service-mesh"],
+    "timezone": "browser",
+    "refresh": "15s",
+    "schemaVersion": 38,
+    "version": 1,
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"x": 0, "y": 0, "w": 24, "h": 10},
+        "type": "nodeGraph",
+        "title": "Service Dependency Graph",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "sum by (source, destination) (rate(obi_tcp_connections_total[5m]))",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "nodes": {
+            "arcs": [
+              {
+                "field": "arc__success_rate",
+                "color": {
+                  "mode": "continuous-GrYlRd"
+                }
+              }
+            ],
+            "mainStatUnit": "rps",
+            "secondaryStatUnit": "ms"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": {"x": 0, "y": 10, "w": 8, "h": 8},
+        "type": "timeseries",
+        "title": "Inter-Service Latency",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, sum by (source, destination, le) (rate(obi_tcp_rtt_seconds_bucket[5m])))",
+            "legendFormat": "{{source}} → {{destination}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 100, "color": "yellow"},
+                {"value": 500, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "gridPos": {"x": 8, "y": 10, "w": 8, "h": 8},
+        "type": "stat",
+        "title": "Services Discovered",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "count(count by (service) (obi_service_discovered))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "blue"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": {"x": 16, "y": 10, "w": 8, "h": 8},
+        "type": "gauge",
+        "title": "Dependency Map Accuracy",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "obi_dependency_accuracy_score",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 0.7, "color": "yellow"},
+                {"value": 0.9, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": {"x": 0, "y": 18, "w": 12, "h": 8},
+        "type": "table",
+        "title": "Critical Dependencies",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "topk(20, sum by (source, destination) (rate(obi_tcp_connections_total[5m])) * on(destination) group_left(criticality) obi_service_criticality)",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true
+              },
+              "indexByName": {
+                "source": 0,
+                "destination": 1,
+                "Value": 2
+              },
+              "renameByName": {
+                "source": "Source Service",
+                "destination": "Destination Service",
+                "Value": "Connection Rate"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "gridPos": {"x": 12, "y": 18, "w": 12, "h": 8},
+        "type": "timeseries",
+        "title": "Dependency Discovery Rate",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "rate(obi_dependencies_discovered_total[5m])",
+            "legendFormat": "New Dependencies/sec",
+            "refId": "A"
+          },
+          {
+            "expr": "obi_dependencies_active_total",
+            "legendFormat": "Total Active Dependencies",
+            "refId": "B"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "gridPos": {"x": 0, "y": 26, "w": 8, "h": 6},
+        "type": "piechart",
+        "title": "Protocol Distribution",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "sum by (protocol) (increase(obi_protocol_detected_total[1h]))",
+            "legendFormat": "{{protocol}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "gridPos": {"x": 8, "y": 26, "w": 8, "h": 6},
+        "type": "stat",
+        "title": "Service Mesh Comparison",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "count(obi_service_discovered) - count(istio_service_registered)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "type": "value",
+                "value": 0,
+                "text": "Perfect Match"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "gridPos": {"x": 16, "y": 26, "w": 8, "h": 6},
+        "type": "timeseries",
+        "title": "eBPF Overhead",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{pod=~\"obi-.*\"}[5m])",
+            "legendFormat": "OBI CPU Usage",
+            "refId": "A"
+          },
+          {
+            "expr": "container_memory_usage_bytes{pod=~\"obi-.*\"} / 1024 / 1024",
+            "legendFormat": "OBI Memory (MB)",
+            "refId": "B"
+          }
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "type": "query",
+          "datasource": "Mimir",
+          "query": "label_values(obi_service_discovered, namespace)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "multi": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,226 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "exp-sampling-002",
+    "title": "OBI Experiment - Adaptive Sampling Analysis",
+    "description": "Monitoring and analysis of adaptive sampling strategies for cost optimization",
+    "tags": ["obi", "experiments", "sampling", "cost-optimization"],
+    "timezone": "browser",
+    "refresh": "10s",
+    "schemaVersion": 38,
+    "version": 1,
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 6},
+        "type": "timeseries",
+        "title": "Sampling Rate Over Time",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "rate(obi_samples_total[5m]) / rate(obi_events_total[5m])",
+            "legendFormat": "Overall Sampling Rate",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(obi_samples_total{service=\"critical\"}[5m]) / rate(obi_events_total{service=\"critical\"}[5m])",
+            "legendFormat": "Critical Services",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(obi_samples_total{service!=\"critical\"}[5m]) / rate(obi_events_total{service!=\"critical\"}[5m])",
+            "legendFormat": "Non-Critical Services",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 6},
+        "type": "stat",
+        "title": "Data Volume Reduction",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "1 - (sum(rate(mimir_ingester_ingested_samples_total[5m])) / sum(rate(obi_generated_samples_total[5m])))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 0.4, "color": "yellow"},
+                {"value": 0.6, "color": "green"},
+                {"value": 0.8, "color": "blue"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "gridPos": {"x": 0, "y": 6, "w": 8, "h": 8},
+        "type": "timeseries",
+        "title": "P99 Latency Accuracy",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{sampled=\"true\"}[5m])))",
+            "legendFormat": "Sampled P99",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{sampled=\"false\"}[5m])))",
+            "legendFormat": "Full P99",
+            "refId": "B"
+          },
+          {
+            "expr": "abs(histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{sampled=\"true\"}[5m]))) - histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{sampled=\"false\"}[5m])))) / histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{sampled=\"false\"}[5m])))",
+            "legendFormat": "Error Rate",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "gridPos": {"x": 8, "y": 6, "w": 8, "h": 8},
+        "type": "timeseries",
+        "title": "Anomaly Detection Accuracy",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "sum(rate(anomalies_detected_sampled[5m]))",
+            "legendFormat": "Sampled Detection",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(anomalies_detected_full[5m]))",
+            "legendFormat": "Full Detection",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(anomalies_detected_sampled[5m])) / sum(rate(anomalies_detected_full[5m]))",
+            "legendFormat": "Detection Rate",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "gridPos": {"x": 16, "y": 6, "w": 8, "h": 8},
+        "type": "piechart",
+        "title": "Sampling Distribution by Rule",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "sum by (rule) (increase(obi_sampling_decisions_total[1h]))",
+            "legendFormat": "{{rule}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "gridPos": {"x": 0, "y": 14, "w": 12, "h": 8},
+        "type": "graph",
+        "title": "Cost Impact Analysis",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "(sum(rate(obi_generated_samples_total[5m])) / 1000000) * 0.5",
+            "legendFormat": "Baseline Cost (No Sampling)",
+            "refId": "A"
+          },
+          {
+            "expr": "(sum(rate(mimir_ingester_ingested_samples_total[5m])) / 1000000) * 0.5",
+            "legendFormat": "Actual Cost (With Sampling)",
+            "refId": "B"
+          },
+          {
+            "expr": "((sum(rate(obi_generated_samples_total[5m])) - sum(rate(mimir_ingester_ingested_samples_total[5m]))) / 1000000) * 0.5",
+            "legendFormat": "Cost Savings",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "gridPos": {"x": 12, "y": 14, "w": 12, "h": 8},
+        "type": "heatmap",
+        "title": "Sampling Decision Latency",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, sum by (le) (rate(obi_sampling_decision_duration_seconds_bucket[5m])))",
+            "format": "heatmap",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "cellValues": {
+            "unit": "ms"
+          },
+          "color": {
+            "scheme": "Blues"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "gridPos": {"x": 0, "y": 22, "w": 24, "h": 8},
+        "type": "table",
+        "title": "Sampling Strategy Effectiveness",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "topk(10, sum by (strategy) (rate(obi_sampling_effectiveness_score[5m])))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "sampling_strategy",
+          "type": "custom",
+          "query": "head_based,tail_based,adaptive,hybrid",
+          "current": {
+            "text": "adaptive",
+            "value": "adaptive"
+          },
+          "multi": true
+        },
+        {
+          "name": "service",
+          "type": "query",
+          "datasource": "Mimir",
+          "query": "label_values(obi_events_total, service)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "multi": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,178 @@
+{
+  "experiment": {
+    "id": "exp-001",
+    "name": "Adaptive Sampling for Cost Optimization",
+    "description": "Implement intelligent sampling strategies to reduce data volume while maintaining observability quality",
+    "version": "1.0.0",
+    "created": "2025-11-07",
+    "author": "MOP Data Science Team"
+  },
+  "objectives": [
+    "Reduce metric ingestion volume by 60-80% through intelligent sampling",
+    "Maintain p99 accuracy for critical business metrics",
+    "Implement dynamic sampling rates based on traffic patterns",
+    "Optimize storage costs while preserving anomaly detection capability"
+  ],
+  "configuration": {
+    "sampling_strategies": {
+      "head_based": {
+        "enabled": true,
+        "default_rate": 0.1,
+        "rules": [
+          {
+            "service": "frontend",
+            "endpoint": "/api/critical/*",
+            "sample_rate": 1.0,
+            "reason": "Critical business endpoint - full sampling"
+          },
+          {
+            "service": "backend",
+            "status_code": "5xx",
+            "sample_rate": 1.0,
+            "reason": "Error conditions - full sampling"
+          },
+          {
+            "service": "*",
+            "endpoint": "/health",
+            "sample_rate": 0.01,
+            "reason": "Health checks - minimal sampling"
+          }
+        ]
+      },
+      "tail_based": {
+        "enabled": true,
+        "decision_wait": "30s",
+        "policies": [
+          {
+            "name": "latency-based",
+            "type": "latency",
+            "latency_threshold_ms": 1000,
+            "sample_rate": 1.0
+          },
+          {
+            "name": "error-based",
+            "type": "status_code",
+            "status_codes": ["4xx", "5xx"],
+            "sample_rate": 1.0
+          },
+          {
+            "name": "probabilistic-fallback",
+            "type": "probabilistic",
+            "sample_rate": 0.05
+          }
+        ]
+      },
+      "adaptive": {
+        "enabled": true,
+        "algorithm": "token_bucket",
+        "target_rate": 10000,
+        "burst_size": 50000,
+        "adjustment_interval": "1m",
+        "metrics": {
+          "cpu_threshold": 0.7,
+          "memory_threshold": 0.8,
+          "throughput_threshold": 100000
+        }
+      }
+    },
+    "metrics_to_collect": [
+      {
+        "name": "sampling_efficiency",
+        "query": "rate(obi_samples_total[5m]) / rate(obi_events_total[5m])",
+        "unit": "ratio",
+        "target": "< 0.2"
+      },
+      {
+        "name": "data_reduction",
+        "query": "1 - (sum(rate(mimir_ingester_ingested_samples_total[5m])) / sum(rate(obi_generated_samples_total[5m])))",
+        "unit": "percentage",
+        "target": "> 0.6"
+      },
+      {
+        "name": "anomaly_detection_accuracy",
+        "query": "sum(rate(anomalies_detected_sampled[5m])) / sum(rate(anomalies_detected_full[5m]))",
+        "unit": "ratio",
+        "target": "> 0.95"
+      },
+      {
+        "name": "p99_latency_accuracy",
+        "query": "abs(histogram_quantile(0.99, sampled_latency) - histogram_quantile(0.99, full_latency)) / histogram_quantile(0.99, full_latency)",
+        "unit": "percentage",
+        "target": "< 0.05"
+      },
+      {
+        "name": "storage_cost_reduction",
+        "query": "sum(mimir_blocks_storage_bytes) * 0.023 / 1e9",
+        "unit": "usd_per_month",
+        "target": "< 500"
+      }
+    ],
+    "test_scenarios": [
+      {
+        "name": "steady_state",
+        "duration": "30m",
+        "load_profile": "constant",
+        "rps": 1000,
+        "expected_sampling_rate": 0.1
+      },
+      {
+        "name": "traffic_spike",
+        "duration": "15m",
+        "load_profile": "spike",
+        "peak_rps": 10000,
+        "expected_sampling_rate": 0.05
+      },
+      {
+        "name": "error_surge",
+        "duration": "10m",
+        "error_rate": 0.2,
+        "expected_sampling_rate": 0.3
+      }
+    ]
+  },
+  "cost_model": {
+    "metrics_ingestion": {
+      "price_per_million_samples": 0.5,
+      "baseline_samples_per_second": 100000,
+      "target_samples_per_second": 20000
+    },
+    "storage": {
+      "price_per_gb_month": 0.023,
+      "baseline_storage_gb": 5000,
+      "target_storage_gb": 1000
+    },
+    "query": {
+      "price_per_million_queries": 0.10,
+      "baseline_queries_per_day": 50000,
+      "target_queries_per_day": 50000
+    },
+    "estimated_monthly_savings": 3500
+  },
+  "success_criteria": {
+    "must_have": [
+      "Data reduction > 60%",
+      "P99 latency accuracy > 95%",
+      "No critical alerts missed",
+      "Anomaly detection accuracy > 95%"
+    ],
+    "nice_to_have": [
+      "Data reduction > 80%",
+      "Sub-second sampling decisions",
+      "Automatic threshold adjustment",
+      "ML-based sampling prediction"
+    ]
+  },
+  "rollback_plan": {
+    "triggers": [
+      "Anomaly detection accuracy < 90%",
+      "Critical alerts missed > 2",
+      "P99 latency deviation > 10%"
+    ],
+    "steps": [
+      "Revert to 100% sampling",
+      "Export full telemetry for analysis",
+      "Adjust sampling thresholds",
+      "Re-run validation tests"
+    ]
+  }
+}

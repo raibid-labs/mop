@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: obi
+  namespace: observability-dev
+  labels:
+    app: obi
+    component: ebpf-instrumentation
+spec:
+  selector:
+    matchLabels:
+      app: obi
+  template:
+    metadata:
+      labels:
+        app: obi
+        component: ebpf-instrumentation
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8888"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: obi
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      initContainers:
+      - name: verify-kernel
+        image: busybox:latest
+        command: ["sh", "-c"]
+        args:
+        - |
+          kernel_version=$(uname -r | cut -d. -f1,2)
+          major=$(echo $kernel_version | cut -d. -f1)
+          minor=$(echo $kernel_version | cut -d. -f2)
+
+          if [ "$major" -lt 4 ] || ([ "$major" -eq 4 ] && [ "$minor" -lt 18 ]); then
+            echo "Kernel version $kernel_version is too old. Minimum required: 4.18"
+            exit 1
+          fi
+
+          echo "Kernel version $kernel_version is compatible"
+      containers:
+      - name: obi
+        image: otel/opentelemetry-ebpf:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+            - SYS_ADMIN
+            - SYS_RESOURCE
+            - SYS_PTRACE
+            - NET_ADMIN
+            - IPC_LOCK
+        volumeMounts:
+        - name: config
+          mountPath: /etc/obi
+        - name: sys
+          mountPath: /sys
+          readOnly: true
+        - name: cgroup
+          mountPath: /sys/fs/cgroup
+          readOnly: true
+        - name: debugfs
+          mountPath: /sys/kernel/debug
+        - name: bpf
+          mountPath: /sys/fs/bpf
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        args:
+        - --config=/etc/obi/config.yaml
+        - --metrics-address=:8888
+        - --health-check-address=:13133
+        ports:
+        - containerPort: 8888
+          name: metrics
+          protocol: TCP
+        - containerPort: 13133
+          name: health
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 13133
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 13133
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: config
+        configMap:
+          name: obi
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: cgroup
+        hostPath:
+          path: /sys/fs/cgroup
+      - name: debugfs
+        hostPath:
+          path: /sys/kernel/debug
+      - name: bpf
+        hostPath:
+          path: /sys/fs/bpf
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      - effect: NoExecute
+        operator: Exists

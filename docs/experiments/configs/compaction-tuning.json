@@ -1,0 +1,210 @@
+{
+  "experiment": {
+    "id": "exp-002",
+    "name": "Mimir Compaction and Retention Tuning",
+    "description": "Optimize Mimir compaction strategies and retention policies to reduce storage costs while maintaining query performance",
+    "version": "1.0.0",
+    "created": "2025-11-07",
+    "author": "MOP Data Science Team"
+  },
+  "objectives": [
+    "Reduce storage footprint by 40-50% through aggressive compaction",
+    "Implement tiered retention policies based on metric importance",
+    "Optimize block size and compaction intervals",
+    "Maintain query latency under 2 seconds for 30-day queries"
+  ],
+  "configuration": {
+    "compaction_strategies": {
+      "vertical_compaction": {
+        "enabled": true,
+        "max_compaction_concurrency": 4,
+        "compaction_interval": "2h",
+        "block_ranges": [
+          {
+            "min_time": "0h",
+            "max_time": "2h",
+            "resolution": "raw"
+          },
+          {
+            "min_time": "2h",
+            "max_time": "12h",
+            "resolution": "5m"
+          },
+          {
+            "min_time": "12h",
+            "max_time": "24h",
+            "resolution": "1h"
+          }
+        ]
+      },
+      "horizontal_compaction": {
+        "enabled": true,
+        "max_closing_blocks_concurrency": 2,
+        "symbols_flushers_concurrency": 4,
+        "max_opening_blocks_concurrency": 4
+      },
+      "retention_policies": [
+        {
+          "metric_pattern": "*_critical",
+          "retention_days": 90,
+          "downsampling": {
+            "1h_after_days": 7,
+            "6h_after_days": 30
+          }
+        },
+        {
+          "metric_pattern": "*_business",
+          "retention_days": 30,
+          "downsampling": {
+            "5m_after_days": 3,
+            "1h_after_days": 7
+          }
+        },
+        {
+          "metric_pattern": "*_debug",
+          "retention_days": 7,
+          "downsampling": {
+            "5m_after_days": 1
+          }
+        },
+        {
+          "metric_pattern": "*",
+          "retention_days": 14,
+          "downsampling": {
+            "5m_after_days": 2,
+            "1h_after_days": 7
+          }
+        }
+      ],
+      "deletion_policies": {
+        "enabled": true,
+        "deletion_interval": "12h",
+        "metrics_to_delete": [
+          {
+            "pattern": "prometheus_*",
+            "older_than": "7d",
+            "reason": "Internal prometheus metrics"
+          },
+          {
+            "pattern": "*_bucket",
+            "older_than": "14d",
+            "reason": "Histogram buckets consume excessive space"
+          }
+        ]
+      }
+    },
+    "metrics_to_collect": [
+      {
+        "name": "storage_reduction",
+        "query": "1 - (sum(mimir_compactor_blocks_storage_bytes_after) / sum(mimir_compactor_blocks_storage_bytes_before))",
+        "unit": "percentage",
+        "target": "> 0.4"
+      },
+      {
+        "name": "compaction_throughput",
+        "query": "rate(mimir_compactor_blocks_processed_total[5m])",
+        "unit": "blocks_per_second",
+        "target": "> 10"
+      },
+      {
+        "name": "query_latency_30d",
+        "query": "histogram_quantile(0.99, mimir_query_duration_seconds{range=\"30d\"})",
+        "unit": "seconds",
+        "target": "< 2"
+      },
+      {
+        "name": "compaction_cpu_usage",
+        "query": "avg(rate(container_cpu_usage_seconds_total{pod=~\"mimir-compactor-.*\"}[5m]))",
+        "unit": "cores",
+        "target": "< 4"
+      },
+      {
+        "name": "blocks_per_tenant",
+        "query": "avg(mimir_ingester_memory_blocks)",
+        "unit": "blocks",
+        "target": "< 100"
+      },
+      {
+        "name": "storage_cost_monthly",
+        "query": "sum(mimir_blocks_storage_bytes) * 0.023 / 1e9 * 730",
+        "unit": "usd",
+        "target": "< 1000"
+      }
+    ],
+    "test_scenarios": [
+      {
+        "name": "baseline_measurement",
+        "duration": "24h",
+        "metrics_ingestion_rate": "100k/s",
+        "query_load": "normal",
+        "measure_before_compaction": true
+      },
+      {
+        "name": "aggressive_compaction",
+        "duration": "24h",
+        "compaction_interval": "30m",
+        "measure_storage_impact": true
+      },
+      {
+        "name": "tiered_retention",
+        "duration": "7d",
+        "apply_retention_policies": true,
+        "measure_data_loss": true
+      },
+      {
+        "name": "query_performance",
+        "duration": "2h",
+        "query_types": ["instant", "range_1h", "range_24h", "range_7d", "range_30d"],
+        "concurrent_queries": 10
+      }
+    ]
+  },
+  "optimization_targets": {
+    "storage": {
+      "baseline_tb": 10,
+      "target_tb": 5,
+      "cost_per_tb_month": 23
+    },
+    "compaction": {
+      "cpu_cores": 4,
+      "memory_gb": 16,
+      "disk_iops": 3000
+    },
+    "query_performance": {
+      "instant_query_p99_ms": 100,
+      "range_query_1h_p99_ms": 500,
+      "range_query_24h_p99_ms": 1000,
+      "range_query_30d_p99_ms": 2000
+    }
+  },
+  "cost_model": {
+    "current_monthly_cost": {
+      "storage": 2300,
+      "compute": 500,
+      "network": 200,
+      "total": 3000
+    },
+    "target_monthly_cost": {
+      "storage": 1150,
+      "compute": 600,
+      "network": 200,
+      "total": 1950
+    },
+    "monthly_savings": 1050,
+    "annual_savings": 12600
+  },
+  "success_criteria": {
+    "required": [
+      "Storage reduction >= 40%",
+      "Query latency p99 < 2s for 30d queries",
+      "No data loss for critical metrics",
+      "Compaction lag < 1 hour"
+    ],
+    "optional": [
+      "Storage reduction >= 50%",
+      "Automated retention policy adjustment",
+      "Predictive compaction scheduling",
+      "Zero-downtime configuration changes"
+    ]
+  }
+}

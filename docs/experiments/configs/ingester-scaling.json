@@ -1,0 +1,239 @@
+{
+  "experiment": {
+    "id": "exp-003",
+    "name": "Intelligent Ingester Auto-scaling",
+    "description": "Implement predictive auto-scaling for Mimir ingesters based on ML models to optimize resource utilization and reduce costs",
+    "version": "1.0.0",
+    "created": "2025-11-07",
+    "author": "MOP Data Science Team"
+  },
+  "objectives": [
+    "Reduce ingester resource costs by 30-40% through intelligent scaling",
+    "Predict traffic patterns using time-series forecasting",
+    "Implement proactive scaling before traffic spikes",
+    "Maintain ingestion latency under 100ms during scaling events"
+  ],
+  "configuration": {
+    "ml_models": {
+      "time_series_forecasting": {
+        "algorithm": "prophet",
+        "features": [
+          "hour_of_day",
+          "day_of_week",
+          "is_weekend",
+          "is_holiday",
+          "special_events"
+        ],
+        "training_window": "30d",
+        "forecast_horizon": "6h",
+        "update_frequency": "daily"
+      },
+      "anomaly_detection": {
+        "algorithm": "isolation_forest",
+        "contamination": 0.1,
+        "features": [
+          "ingestion_rate",
+          "active_series",
+          "sample_rate",
+          "cpu_usage",
+          "memory_usage"
+        ]
+      },
+      "scaling_predictor": {
+        "algorithm": "random_forest",
+        "features": [
+          "predicted_load",
+          "current_replicas",
+          "cpu_utilization",
+          "memory_utilization",
+          "queue_depth"
+        ],
+        "target": "optimal_replicas"
+      }
+    },
+    "scaling_policies": {
+      "predictive": {
+        "enabled": true,
+        "min_replicas": 2,
+        "max_replicas": 20,
+        "scale_up_threshold": {
+          "predicted_cpu": 0.7,
+          "predicted_memory": 0.8,
+          "confidence": 0.85
+        },
+        "scale_down_threshold": {
+          "predicted_cpu": 0.3,
+          "predicted_memory": 0.4,
+          "stability_window": "10m"
+        },
+        "cooldown_periods": {
+          "scale_up": "3m",
+          "scale_down": "10m"
+        }
+      },
+      "reactive": {
+        "enabled": true,
+        "cpu_target": 0.6,
+        "memory_target": 0.7,
+        "metrics": [
+          {
+            "name": "ingestion_rate",
+            "target": 10000,
+            "per_replica": true
+          },
+          {
+            "name": "active_series",
+            "target": 1000000,
+            "per_replica": true
+          }
+        ]
+      },
+      "schedule_based": {
+        "enabled": true,
+        "schedules": [
+          {
+            "cron": "0 8 * * 1-5",
+            "min_replicas": 5,
+            "description": "Business hours weekdays"
+          },
+          {
+            "cron": "0 18 * * 1-5",
+            "min_replicas": 3,
+            "description": "After hours weekdays"
+          },
+          {
+            "cron": "0 0 * * 0,6",
+            "min_replicas": 2,
+            "description": "Weekends"
+          }
+        ]
+      }
+    },
+    "metrics_to_collect": [
+      {
+        "name": "prediction_accuracy",
+        "query": "1 - abs(predicted_load - actual_load) / actual_load",
+        "unit": "percentage",
+        "target": "> 0.85"
+      },
+      {
+        "name": "resource_utilization",
+        "query": "avg(container_cpu_usage_rate{pod=~\"mimir-ingester-.*\"})",
+        "unit": "percentage",
+        "target": "0.5-0.7"
+      },
+      {
+        "name": "scaling_events",
+        "query": "increase(kube_deployment_status_replicas{deployment=\"mimir-ingester\"}[1h])",
+        "unit": "events_per_hour",
+        "target": "< 4"
+      },
+      {
+        "name": "ingestion_latency_during_scaling",
+        "query": "histogram_quantile(0.99, mimir_ingester_ingestion_latency_seconds)",
+        "unit": "milliseconds",
+        "target": "< 100"
+      },
+      {
+        "name": "cost_per_million_samples",
+        "query": "(sum(kube_pod_container_resource_requests{pod=~\"mimir-ingester-.*\", resource=\"cpu\"}) * 0.04 + sum(kube_pod_container_resource_requests{pod=~\"mimir-ingester-.*\", resource=\"memory\"}) * 0.01) / rate(mimir_ingester_ingested_samples_total[1h]) * 1000000",
+        "unit": "usd",
+        "target": "< 0.30"
+      },
+      {
+        "name": "queue_depth",
+        "query": "avg(mimir_ingester_queue_length)",
+        "unit": "samples",
+        "target": "< 10000"
+      }
+    ],
+    "test_scenarios": [
+      {
+        "name": "daily_pattern_learning",
+        "duration": "7d",
+        "pattern": "sinusoidal",
+        "peak_hours": [9, 14, 18],
+        "validate_predictions": true
+      },
+      {
+        "name": "traffic_spike_prediction",
+        "duration": "4h",
+        "spike_magnitude": 5,
+        "advance_warning_minutes": 15,
+        "measure_proactive_scaling": true
+      },
+      {
+        "name": "gradual_increase",
+        "duration": "6h",
+        "growth_rate": "20% per hour",
+        "validate_smooth_scaling": true
+      },
+      {
+        "name": "cost_optimization",
+        "duration": "24h",
+        "load_pattern": "production_replay",
+        "measure_cost_savings": true
+      }
+    ],
+    "ml_training": {
+      "training_data": {
+        "source": "mimir_historical_metrics",
+        "duration": "90d",
+        "features_collected": [
+          "ingestion_rate",
+          "active_series",
+          "cpu_usage",
+          "memory_usage",
+          "replica_count",
+          "queue_depth"
+        ]
+      },
+      "model_evaluation": {
+        "cross_validation_folds": 5,
+        "test_split": 0.2,
+        "metrics": ["rmse", "mae", "mape", "r2"]
+      },
+      "hyperparameter_tuning": {
+        "method": "grid_search",
+        "cv_folds": 3,
+        "param_grid": {
+          "prophet": {
+            "changepoint_prior_scale": [0.001, 0.01, 0.1],
+            "seasonality_prior_scale": [0.01, 1.0, 10.0]
+          },
+          "random_forest": {
+            "n_estimators": [100, 200, 300],
+            "max_depth": [10, 20, 30],
+            "min_samples_split": [2, 5, 10]
+          }
+        }
+      }
+    },
+    "cost_model": {
+      "ingester_costs": {
+        "cpu_cost_per_core_hour": 0.04,
+        "memory_cost_per_gb_hour": 0.01,
+        "baseline_replicas": 10,
+        "baseline_cpu_per_replica": 2,
+        "baseline_memory_per_replica": 8
+      },
+      "current_monthly_cost": 1440,
+      "target_monthly_cost": 900,
+      "estimated_savings": 540,
+      "annual_savings": 6480
+    },
+    "success_criteria": {
+      "mandatory": [
+        "Cost reduction >= 30%",
+        "Ingestion latency p99 < 100ms",
+        "No data loss during scaling",
+        "Prediction accuracy > 85%"
+      ],
+      "stretch_goals": [
+        "Cost reduction >= 40%",
+        "Fully automated ML model retraining",
+        "Multi-cluster coordinated scaling",
+        "Carbon-aware scaling decisions"
+      ]
+    }
+}

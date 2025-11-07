@@ -1,0 +1,271 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "exp-sql-004",
+    "title": "OBI Experiment - SQL Query Optimization",
+    "description": "Monitoring SQL query patterns and optimization opportunities from eBPF data",
+    "tags": ["obi", "experiments", "sql", "database", "optimization"],
+    "timezone": "browser",
+    "refresh": "10s",
+    "schemaVersion": 38,
+    "version": 1,
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "type": "timeseries",
+        "title": "SQL Query Performance",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, sum by (query_type, le) (rate(obi_sql_query_duration_seconds_bucket[5m])))",
+            "legendFormat": "P99 - {{query_type}}",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, sum by (query_type, le) (rate(obi_sql_query_duration_seconds_bucket[5m])))",
+            "legendFormat": "P95 - {{query_type}}",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.50, sum by (query_type, le) (rate(obi_sql_query_duration_seconds_bucket[5m])))",
+            "legendFormat": "P50 - {{query_type}}",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "type": "table",
+        "title": "Slow Query Analysis",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "topk(10, sum by (query_pattern) (rate(obi_sql_slow_queries_total[5m])))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "renameByName": {
+                "query_pattern": "Query Pattern",
+                "Value": "Executions/sec"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+        "type": "piechart",
+        "title": "Query Type Distribution",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "sum by (query_type) (increase(obi_sql_queries_total[1h]))",
+            "legendFormat": "{{query_type}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "gridPos": {"x": 8, "y": 8, "w": 8, "h": 8},
+        "type": "timeseries",
+        "title": "Database Connection Pool",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "obi_sql_connections_active",
+            "legendFormat": "Active Connections",
+            "refId": "A"
+          },
+          {
+            "expr": "obi_sql_connections_idle",
+            "legendFormat": "Idle Connections",
+            "refId": "B"
+          },
+          {
+            "expr": "obi_sql_connections_waiting",
+            "legendFormat": "Waiting for Connection",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "gridPos": {"x": 16, "y": 8, "w": 8, "h": 8},
+        "type": "gauge",
+        "title": "Query Cache Hit Rate",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "sum(rate(obi_sql_cache_hits_total[5m])) / (sum(rate(obi_sql_cache_hits_total[5m])) + sum(rate(obi_sql_cache_misses_total[5m])))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "red"},
+                {"value": 0.5, "color": "yellow"},
+                {"value": 0.8, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "type": "heatmap",
+        "title": "Query Latency Heatmap by Table",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "sum by (table, le) (rate(obi_sql_table_access_duration_seconds_bucket[5m]))",
+            "format": "heatmap",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "cellValues": {
+            "unit": "ms"
+          },
+          "color": {
+            "scheme": "RdYlGn",
+            "reverse": true
+          }
+        }
+      },
+      {
+        "id": 7,
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+        "type": "timeseries",
+        "title": "Index Usage Effectiveness",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "sum by (table) (rate(obi_sql_index_scans_total[5m]))",
+            "legendFormat": "Index Scans - {{table}}",
+            "refId": "A"
+          },
+          {
+            "expr": "sum by (table) (rate(obi_sql_full_table_scans_total[5m]))",
+            "legendFormat": "Full Scans - {{table}}",
+            "refId": "B"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "gridPos": {"x": 0, "y": 24, "w": 8, "h": 6},
+        "type": "stat",
+        "title": "Deadlock Detection",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "increase(obi_sql_deadlocks_total[1h])",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "gridPos": {"x": 8, "y": 24, "w": 8, "h": 6},
+        "type": "timeseries",
+        "title": "Transaction Duration",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.99, sum by (le) (rate(obi_sql_transaction_duration_seconds_bucket[5m])))",
+            "legendFormat": "P99 Transaction Time",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "gridPos": {"x": 16, "y": 24, "w": 8, "h": 6},
+        "type": "table",
+        "title": "Optimization Recommendations",
+        "datasource": "Mimir",
+        "targets": [
+          {
+            "expr": "topk(5, obi_sql_optimization_score) by (recommendation)",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "database",
+          "type": "query",
+          "datasource": "Mimir",
+          "query": "label_values(obi_sql_queries_total, database)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "multi": true
+        },
+        {
+          "name": "table",
+          "type": "query",
+          "datasource": "Mimir",
+          "query": "label_values(obi_sql_table_access_duration_seconds_bucket, table)",
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "multi": true
+        }
+      ]
+    }
+  }
+}

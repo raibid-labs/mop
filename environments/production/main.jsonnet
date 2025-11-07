@@ -2,19 +2,28 @@
 // Uses full resources and S3 storage with HA
 
 local config = import '../../lib/config.libsonnet';
-local k = import 'k.libsonnet';
+local namespace = import '../../lib/kubernetes/namespace.libsonnet';
+local rbac = import '../../lib/kubernetes/rbac.libsonnet';
+local storage = import '../../lib/kubernetes/storage.libsonnet';
+local network = import '../../lib/kubernetes/network.libsonnet';
 
 {
   _config:: config.environments.production,
 
-  // Create namespace
-  namespace: k.core.v1.namespace.new(self._config.namespace) {
-    metadata+: {
-      labels: config.commonLabels + {
-        environment: 'production',
-      },
-    },
-  },
+  // Create namespace with proper labels
+  namespace: namespace.new(self._config.namespace, {
+    environment: 'production',
+    'mop.io/version': config.version,
+  }),
+
+  // RBAC configuration for all components
+  rbac: rbac.new(self._config.namespace),
+
+  // Storage classes for production (fast SSD with retention)
+  storage: storage.new()['prod-storage'],
+
+  // Network policies for component isolation
+  network: network.new(self._config.namespace),
 
   // TODO: Add component deployments
   // Components will be added in subsequent workstreams:
