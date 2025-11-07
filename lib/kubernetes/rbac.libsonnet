@@ -61,15 +61,15 @@
   // Pre-configured RBAC for MOP components
   new(namespace):: {
     // ServiceAccounts
-    'obi-sa': self.serviceAccount('obi-collector', namespace, {'app': 'obi'}),
-    'alloy-sa': self.serviceAccount('alloy', namespace, {'app': 'alloy'}),
-    'tempo-sa': self.serviceAccount('tempo', namespace, {'app': 'tempo'}),
-    'mimir-sa': self.serviceAccount('mimir', namespace, {'app': 'mimir'}),
-    'loki-sa': self.serviceAccount('loki', namespace, {'app': 'loki'}),
-    'grafana-sa': self.serviceAccount('grafana', namespace, {'app': 'grafana'}),
+    'obi-sa': $.serviceAccount('obi-collector', namespace, {'app': 'obi'}),
+    'alloy-sa': $.serviceAccount('alloy', namespace, {'app': 'alloy'}),
+    'tempo-sa': $.serviceAccount('tempo', namespace, {'app': 'tempo'}),
+    'mimir-sa': $.serviceAccount('mimir', namespace, {'app': 'mimir'}),
+    'loki-sa': $.serviceAccount('loki', namespace, {'app': 'loki'}),
+    'grafana-sa': $.serviceAccount('grafana', namespace, {'app': 'grafana'}),
 
     // OBI ClusterRole (privileged for eBPF operations)
-    'obi-cr': self.clusterRole('obi-collector', [
+    'obi-cr': $.clusterRole('obi-collector', [
       {
         apiGroups: [''],
         resources: ['nodes', 'pods', 'services', 'endpoints', 'configmaps'],
@@ -88,7 +88,7 @@
     ], {'app': 'obi'}),
 
     // Alloy ClusterRole (for scraping metrics)
-    'alloy-cr': self.clusterRole('alloy', [
+    'alloy-cr': $.clusterRole('alloy', [
       {
         apiGroups: [''],
         resources: ['nodes', 'nodes/metrics', 'pods', 'services', 'endpoints'],
@@ -186,7 +186,7 @@
     },
 
     // ClusterRoleBindings
-    'obi-crb': self.clusterRoleBinding(
+    'obi-crb': $.clusterRoleBinding(
       'obi-collector',
       {
         apiGroup: 'rbac.authorization.k8s.io',
@@ -201,7 +201,7 @@
       {'app': 'obi'}
     ),
 
-    'alloy-crb': self.clusterRoleBinding(
+    'alloy-crb': $.clusterRoleBinding(
       'alloy',
       {
         apiGroup: 'rbac.authorization.k8s.io',
@@ -217,7 +217,7 @@
     ),
 
     // RoleBindings
-    'tempo-rb': self.roleBinding(
+    'tempo-rb': $.roleBinding(
       'tempo',
       namespace,
       {
@@ -233,7 +233,7 @@
       {'app': 'tempo'}
     ),
 
-    'mimir-rb': self.roleBinding(
+    'mimir-rb': $.roleBinding(
       'mimir',
       namespace,
       {
@@ -249,7 +249,7 @@
       {'app': 'mimir'}
     ),
 
-    'loki-rb': self.roleBinding(
+    'loki-rb': $.roleBinding(
       'loki',
       namespace,
       {
@@ -265,7 +265,7 @@
       {'app': 'loki'}
     ),
 
-    'grafana-rb': self.roleBinding(
+    'grafana-rb': $.roleBinding(
       'grafana',
       namespace,
       {

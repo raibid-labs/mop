@@ -6,6 +6,7 @@ local namespace = import '../../lib/kubernetes/namespace.libsonnet';
 local rbac = import '../../lib/kubernetes/rbac.libsonnet';
 local storage = import '../../lib/kubernetes/storage.libsonnet';
 local network = import '../../lib/kubernetes/network.libsonnet';
+local obi = import '../../lib/obi.libsonnet';
 
 {
   _config:: config.environments.production,
@@ -25,9 +26,11 @@ local network = import '../../lib/kubernetes/network.libsonnet';
   // Network policies for component isolation
   network: network.new(self._config.namespace),
 
-  // TODO: Add component deployments
+  // OBI eBPF instrumentation (Workstream 2)
+  obi: obi.new(self._config),
+
+  // TODO: Add remaining component deployments
   // Components will be added in subsequent workstreams:
-  // - OBI DaemonSet (Workstream 2)
   // - Alloy StatefulSet with operator (Workstream 2)
   // - Tempo StatefulSet (Workstream 3)
   // - Mimir StatefulSet (Workstream 3)

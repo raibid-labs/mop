@@ -2,6 +2,9 @@
 // This file provides environment-specific and component-specific configuration
 
 {
+  // MOP Platform version
+  version:: '1.0.0',
+
   // Environment configurations
   environments:: {
     dev: {

@@ -43,7 +43,7 @@
   // Pre-configured storage classes for different environments
   new():: {
     // Development storage class (standard performance)
-    'dev-storage': self.storageClass(
+    'dev-storage': $.storageClass(
       'mop-standard',
       'kubernetes.io/gce-pd',  // GKE example, adjust for your cloud provider
       {
@@ -56,7 +56,7 @@
     ),
 
     // Production storage class (fast SSD)
-    'prod-storage': self.storageClass(
+    'prod-storage': $.storageClass(
       'mop-fast-ssd',
       'kubernetes.io/gce-pd',  // GKE example, adjust for your cloud provider
       {
@@ -69,7 +69,7 @@
     ),
 
     // For AWS EKS
-    'eks-dev-storage': self.storageClass(
+    'eks-dev-storage': $.storageClass(
       'mop-standard',
       'ebs.csi.aws.com',
       {
@@ -81,7 +81,7 @@
       {'environment': 'dev', 'provider': 'aws'}
     ),
 
-    'eks-prod-storage': self.storageClass(
+    'eks-prod-storage': $.storageClass(
       'mop-fast-ssd',
       'ebs.csi.aws.com',
       {
@@ -95,7 +95,7 @@
     ),
 
     // For Azure AKS
-    'aks-dev-storage': self.storageClass(
+    'aks-dev-storage': $.storageClass(
       'mop-standard',
       'disk.csi.azure.com',
       {
@@ -106,7 +106,7 @@
       {'environment': 'dev', 'provider': 'azure'}
     ),
 
-    'aks-prod-storage': self.storageClass(
+    'aks-prod-storage': $.storageClass(
       'mop-fast-ssd',
       'disk.csi.azure.com',
       {
@@ -118,7 +118,7 @@
     ),
 
     // Generic local storage (for on-prem or testing)
-    'local-storage': self.storageClass(
+    'local-storage': $.storageClass(
       'mop-local',
       'kubernetes.io/no-provisioner',
       {},
@@ -130,9 +130,9 @@
 
   // PVC templates for components
   pvcTemplates(namespace, storageClass):: {
-    'tempo-pvc': self.pvc('tempo-data', namespace, storageClass, '10Gi', ['ReadWriteOnce'], {'app': 'tempo'}),
-    'mimir-pvc': self.pvc('mimir-data', namespace, storageClass, '50Gi', ['ReadWriteOnce'], {'app': 'mimir'}),
-    'loki-pvc': self.pvc('loki-data', namespace, storageClass, '30Gi', ['ReadWriteOnce'], {'app': 'loki'}),
-    'grafana-pvc': self.pvc('grafana-data', namespace, storageClass, '5Gi', ['ReadWriteOnce'], {'app': 'grafana'}),
+    'tempo-pvc': $.pvc('tempo-data', namespace, storageClass, '10Gi', ['ReadWriteOnce'], {'app': 'tempo'}),
+    'mimir-pvc': $.pvc('mimir-data', namespace, storageClass, '50Gi', ['ReadWriteOnce'], {'app': 'mimir'}),
+    'loki-pvc': $.pvc('loki-data', namespace, storageClass, '30Gi', ['ReadWriteOnce'], {'app': 'loki'}),
+    'grafana-pvc': $.pvc('grafana-data', namespace, storageClass, '5Gi', ['ReadWriteOnce'], {'app': 'grafana'}),
   },
 }

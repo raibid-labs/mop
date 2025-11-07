@@ -36,7 +36,7 @@
   // Pre-configured network policies for MOP components
   new(namespace):: {
     // Default deny all ingress/egress for namespace
-    'default-deny': self.networkPolicy(
+    'default-deny': $.networkPolicy(
       'default-deny-all',
       namespace,
       {},  // Empty selector applies to all pods
@@ -58,8 +58,8 @@
             },
           }],
           ports: [
-            self.port('TCP', 53),
-            self.port('UDP', 53),
+            $.port('TCP', 53),
+            $.port('UDP', 53),
           ],
         },
       ],
@@ -67,7 +67,7 @@
     ),
 
     // OBI Collector network policy (needs to scrape all namespaces)
-    'obi-network': self.networkPolicy(
+    'obi-network': $.networkPolicy(
       'obi-collector',
       namespace,
       {
@@ -79,15 +79,15 @@
       [
         // Allow ingress from Grafana
         {
-          from: [self.peer({matchLabels: {app: 'grafana'}})],
-          ports: [self.port('TCP', 9090)],
+          from: [$.peer({matchLabels: {app: 'grafana'}})],
+          ports: [$.port('TCP', 9090)],
         },
       ],
       [
         // Allow egress to all pods for metrics scraping
         {
-          to: [self.peer()],
-          ports: [self.port('TCP', 9090)],
+          to: [$.peer()],
+          ports: [$.port('TCP', 9090)],
         },
         // Allow DNS
         {
@@ -98,14 +98,14 @@
               },
             },
           }],
-          ports: [self.port('UDP', 53)],
+          ports: [$.port('UDP', 53)],
         },
       ],
       {'app': 'obi'}
     ),
 
     // Alloy network policy
-    'alloy-network': self.networkPolicy(
+    'alloy-network': $.networkPolicy(
       'alloy',
       namespace,
       {
@@ -117,12 +117,12 @@
       [
         // Allow ingress from pods for metrics/logs/traces
         {
-          from: [self.peer()],
+          from: [$.peer()],
           ports: [
-            self.port('TCP', 4317),  // OTLP gRPC
-            self.port('TCP', 4318),  // OTLP HTTP
-            self.port('TCP', 9411),  // Zipkin
-            self.port('TCP', 14268), // Jaeger
+            $.port('TCP', 4317),  // OTLP gRPC
+            $.port('TCP', 4318),  // OTLP HTTP
+            $.port('TCP', 9411),  // Zipkin
+            $.port('TCP', 14268), // Jaeger
           ],
         },
       ],
@@ -130,14 +130,14 @@
         // Allow egress to Tempo, Mimir, Loki
         {
           to: [
-            self.peer({matchLabels: {app: 'tempo'}}),
-            self.peer({matchLabels: {app: 'mimir'}}),
-            self.peer({matchLabels: {app: 'loki'}}),
+            $.peer({matchLabels: {app: 'tempo'}}),
+            $.peer({matchLabels: {app: 'mimir'}}),
+            $.peer({matchLabels: {app: 'loki'}}),
           ],
           ports: [
-            self.port('TCP', 9095),  // Tempo
-            self.port('TCP', 9009),  // Mimir
-            self.port('TCP', 3100),  // Loki
+            $.port('TCP', 9095),  // Tempo
+            $.port('TCP', 9009),  // Mimir
+            $.port('TCP', 3100),  // Loki
           ],
         },
         // Allow DNS
@@ -149,14 +149,14 @@
               },
             },
           }],
-          ports: [self.port('UDP', 53)],
+          ports: [$.port('UDP', 53)],
         },
       ],
       {'app': 'alloy'}
     ),
 
     // Tempo network policy
-    'tempo-network': self.networkPolicy(
+    'tempo-network': $.networkPolicy(
       'tempo',
       namespace,
       {
@@ -168,13 +168,13 @@
       [
         // Allow ingress from Alloy
         {
-          from: [self.peer({matchLabels: {app: 'alloy'}})],
-          ports: [self.port('TCP', 9095)],
+          from: [$.peer({matchLabels: {app: 'alloy'}})],
+          ports: [$.port('TCP', 9095)],
         },
         // Allow ingress from Grafana
         {
-          from: [self.peer({matchLabels: {app: 'grafana'}})],
-          ports: [self.port('TCP', 3200)],
+          from: [$.peer({matchLabels: {app: 'grafana'}})],
+          ports: [$.port('TCP', 3200)],
         },
       ],
       [
@@ -187,14 +187,14 @@
               },
             },
           }],
-          ports: [self.port('UDP', 53)],
+          ports: [$.port('UDP', 53)],
         },
       ],
       {'app': 'tempo'}
     ),
 
     // Mimir network policy
-    'mimir-network': self.networkPolicy(
+    'mimir-network': $.networkPolicy(
       'mimir',
       namespace,
       {
@@ -206,13 +206,13 @@
       [
         // Allow ingress from Alloy
         {
-          from: [self.peer({matchLabels: {app: 'alloy'}})],
-          ports: [self.port('TCP', 9009)],
+          from: [$.peer({matchLabels: {app: 'alloy'}})],
+          ports: [$.port('TCP', 9009)],
         },
         // Allow ingress from Grafana
         {
-          from: [self.peer({matchLabels: {app: 'grafana'}})],
-          ports: [self.port('TCP', 9009)],
+          from: [$.peer({matchLabels: {app: 'grafana'}})],
+          ports: [$.port('TCP', 9009)],
         },
       ],
       [
@@ -225,14 +225,14 @@
               },
             },
           }],
-          ports: [self.port('UDP', 53)],
+          ports: [$.port('UDP', 53)],
         },
       ],
       {'app': 'mimir'}
     ),
 
     // Loki network policy
-    'loki-network': self.networkPolicy(
+    'loki-network': $.networkPolicy(
       'loki',
       namespace,
       {
@@ -244,13 +244,13 @@
       [
         // Allow ingress from Alloy
         {
-          from: [self.peer({matchLabels: {app: 'alloy'}})],
-          ports: [self.port('TCP', 3100)],
+          from: [$.peer({matchLabels: {app: 'alloy'}})],
+          ports: [$.port('TCP', 3100)],
         },
         // Allow ingress from Grafana
         {
-          from: [self.peer({matchLabels: {app: 'grafana'}})],
-          ports: [self.port('TCP', 3100)],
+          from: [$.peer({matchLabels: {app: 'grafana'}})],
+          ports: [$.port('TCP', 3100)],
         },
       ],
       [
@@ -263,14 +263,14 @@
               },
             },
           }],
-          ports: [self.port('UDP', 53)],
+          ports: [$.port('UDP', 53)],
         },
       ],
       {'app': 'loki'}
     ),
 
     // Grafana network policy
-    'grafana-network': self.networkPolicy(
+    'grafana-network': $.networkPolicy(
       'grafana',
       namespace,
       {
@@ -283,23 +283,23 @@
         // Allow ingress from anywhere for UI access
         {
           from: [],  // Empty means from anywhere
-          ports: [self.port('TCP', 3000)],
+          ports: [$.port('TCP', 3000)],
         },
       ],
       [
         // Allow egress to Tempo, Mimir, Loki, OBI
         {
           to: [
-            self.peer({matchLabels: {app: 'tempo'}}),
-            self.peer({matchLabels: {app: 'mimir'}}),
-            self.peer({matchLabels: {app: 'loki'}}),
-            self.peer({matchLabels: {app: 'obi'}}),
+            $.peer({matchLabels: {app: 'tempo'}}),
+            $.peer({matchLabels: {app: 'mimir'}}),
+            $.peer({matchLabels: {app: 'loki'}}),
+            $.peer({matchLabels: {app: 'obi'}}),
           ],
           ports: [
-            self.port('TCP', 3200),  // Tempo
-            self.port('TCP', 9009),  // Mimir
-            self.port('TCP', 3100),  // Loki
-            self.port('TCP', 9090),  // OBI
+            $.port('TCP', 3200),  // Tempo
+            $.port('TCP', 9009),  // Mimir
+            $.port('TCP', 3100),  // Loki
+            $.port('TCP', 9090),  // OBI
           ],
         },
         // Allow DNS
@@ -311,7 +311,7 @@
               },
             },
           }],
-          ports: [self.port('UDP', 53)],
+          ports: [$.port('UDP', 53)],
         },
       ],
       {'app': 'grafana'}
