@@ -1,0 +1,96 @@
+name: Orchestrator - PR Events
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  issues: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  handle-pr-completion:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq gh
+
+      - name: Extract issue number
+        id: extract-issue
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          # Try to extract from PR body (e.g., "Closes #123")
+          ISSUE_NUM=$(echo "$PR_BODY" | grep -oP '(?:Closes|Fixes|Resolves)\s+#\K\d+' | head -1)
+
+          # If not found, try from branch name (e.g., "ref-01-001-project-setup")
+          if [ -z "$ISSUE_NUM" ]; then
+            ISSUE_NUM=$(echo "$PR_BRANCH" | grep -oP 'ref-\d+-\d+' | tr '-' '\n' | tail -1)
+          fi
+
+          echo "issue_number=$ISSUE_NUM" >> $GITHUB_OUTPUT
+
+      - name: Calculate PR duration
+        id: duration
+        env:
+          PR_CREATED: ${{ github.event.pull_request.created_at }}
+          PR_MERGED: ${{ github.event.pull_request.merged_at }}
+        run: |
+          START=$(date -d "$PR_CREATED" +%s)
+          END=$(date -d "$PR_MERGED" +%s)
+          DURATION=$((END - START))
+          HOURS=$((DURATION / 3600))
+          MINUTES=$(((DURATION % 3600) / 60))
+
+          echo "duration_seconds=$DURATION" >> $GITHUB_OUTPUT
+          echo "duration_human=${HOURS}h ${MINUTES}m" >> $GITHUB_OUTPUT
+
+      - name: Post completion comment and close issue
+        if: steps.extract-issue.outputs.issue_number != ''
+        uses: actions/github-script@v7
+        env:
+          ISSUE_NUM: ${{ steps.extract-issue.outputs.issue_number }}
+          DURATION: ${{ steps.duration.outputs.duration_human }}
+        with:
+          script: |
+            const issueNumber = parseInt(process.env.ISSUE_NUM);
+
+            if (issueNumber) {
+              // Post completion comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: `🎉 **Work Complete**\n\n` +
+                      `PR #${context.payload.pull_request.number} has been merged!\n\n` +
+                      `- **Duration**: ${process.env.DURATION}\n` +
+                      `- **Author**: @${context.payload.pull_request.user.login}\n` +
+                      `- **Commits**: ${context.payload.pull_request.commits}\n` +
+                      `- **Files Changed**: ${context.payload.pull_request.changed_files}\n\n` +
+                      `Moving to next issue...`
+              });
+
+              // Close the issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                state: 'closed',
+                labels: ['status:completed']
+              });
+            }
+
+      - name: Assign next issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bash scripts/orchestration/assign-next-issue.sh

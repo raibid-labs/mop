@@ -1,0 +1,119 @@
+name: Orchestrator - Issue Events
+
+on:
+  issues:
+    types: [opened, edited, labeled, unlabeled]
+
+permissions:
+  issues: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  check-issue-readiness:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check if draft issue
+        id: check-draft
+        run: |
+          # Skip draft issues - handled by enrichment workflow
+          if echo "${{ github.event.issue.labels.*.name }}" | grep -q "draft\|status:draft"; then
+            echo "is_draft=true" >> $GITHUB_OUTPUT
+            echo "Issue is draft - skipping readiness check"
+            exit 0
+          fi
+          echo "is_draft=false" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies
+        if: steps.check-draft.outputs.is_draft == 'false'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq gh
+
+      - name: Check issue readiness
+        if: steps.check-draft.outputs.is_draft == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          bash scripts/orchestration/check-issue-readiness.sh
+
+      - name: Post readiness comment
+        if: steps.check-draft.outputs.is_draft == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('/tmp/issue-readiness.json')) {
+              const readiness = JSON.parse(fs.readFileSync('/tmp/issue-readiness.json', 'utf8'));
+
+              if (!readiness.ready && readiness.unanswered_questions.length > 0) {
+                // Add waiting:answers label
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  labels: ['waiting:answers']
+                });
+
+                // Remove ready:work label if present
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    name: 'ready:work'
+                  });
+                } catch (error) {
+                  // Label might not exist, ignore
+                }
+
+                // Post pause comment
+                const questionList = readiness.unanswered_questions
+                  .map(q => `- **${q.id}**: ${q.question}`)
+                  .join('\n');
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  body: `⏸️ **Work Paused - Clarifying Questions Need Answers**\n\n` +
+                        `The following questions need to be answered before work can begin:\n\n` +
+                        `${questionList}\n\n` +
+                        `Please answer in any of these formats:\n` +
+                        `- \`A1: Your answer\`\n` +
+                        `- \`Answer 1: Your answer\`\n` +
+                        `- Numbered list (1., 2., etc.)\n\n` +
+                        `Once answered, this issue will automatically resume.`
+                });
+              } else if (readiness.ready) {
+                // Remove waiting:answers label if present
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    name: 'waiting:answers'
+                  });
+                } catch (error) {
+                  // Label might not exist, ignore
+                }
+
+                // Add ready:work label
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  labels: ['ready:work']
+                });
+
+                // Trigger spawn agent
+                const exec = require('child_process').exec;
+                exec('bash scripts/orchestration/spawn-agent-comment.sh ${{ github.event.issue.number }}');
+              }
+            }
