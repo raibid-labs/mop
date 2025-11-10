@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: http-api-config
+  labels:
+    app: http-api
+    protocol: http
+data:
+  APP_NAME: "product-catalog"
+  ENVIRONMENT: "demo"
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+  RATE_LIMIT_RPS: "100"
+  ENABLE_METRICS: "true"
