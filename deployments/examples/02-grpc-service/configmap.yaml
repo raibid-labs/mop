@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grpc-auth-service-config
+  namespace: mop-examples
+  labels:
+    app: grpc-auth-service
+data:
+  PORT: "9090"
+  LOG_LEVEL: "info"
+  # Add any additional configuration here

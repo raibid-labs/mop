@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grpc-auth-service
+  namespace: mop-examples
+  labels:
+    app: grpc-auth-service
+    protocol: grpc
+    example: auth-service
+  annotations:
+    # OBI eBPF automatic instrumentation annotations
+    obi.observability.io/instrument: "true"
+    obi.observability.io/protocol: "grpc"
+    obi.observability.io/trace: "true"
+    obi.observability.io/metrics: "true"
+    obi.observability.io/logs: "true"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: grpc-auth-service
+  template:
+    metadata:
+      labels:
+        app: grpc-auth-service
+        protocol: grpc
+        example: auth-service
+      annotations:
+        # OBI eBPF automatic instrumentation annotations
+        obi.observability.io/instrument: "true"
+        obi.observability.io/protocol: "grpc"
+        obi.observability.io/trace: "true"
+        obi.observability.io/metrics: "true"
+        obi.observability.io/logs: "true"
+        # Additional metadata for better observability
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: grpc-auth-service
+        image: grpc-auth-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: grpc
+          containerPort: 9090
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "9090"
+        - name: LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "nc -z localhost 9090"
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "nc -z localhost 9090"
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpc-auth-service
+  namespace: mop-examples
+  labels:
+    app: grpc-auth-service
+    protocol: grpc
+  annotations:
+    # Service annotations for OBI
+    obi.observability.io/instrument: "true"
+    obi.observability.io/protocol: "grpc"
+spec:
+  type: ClusterIP
+  selector:
+    app: grpc-auth-service
+  ports:
+  - name: grpc
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  sessionAffinity: None
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mop-examples
+  labels:
+    name: mop-examples
+    environment: demo
+  annotations:
+    # Enable OBI for entire namespace
+    obi.observability.io/instrument: "true"
