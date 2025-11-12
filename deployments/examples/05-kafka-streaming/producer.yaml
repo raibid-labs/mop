@@ -1,0 +1,48 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-producer
+  namespace: kafka-streaming
+  labels:
+    app: kafka-producer
+    component: producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-producer
+  template:
+    metadata:
+      labels:
+        app: kafka-producer
+        component: producer
+      annotations:
+        # OBI instrumentation annotations
+        obi.instrumentation/inject: "true"
+        obi.instrumentation/protocol: "kafka"
+    spec:
+      containers:
+      - name: producer
+        image: kafka-streaming-producer:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "ps aux | grep producer | grep -v grep"
+          initialDelaySeconds: 10
+          periodSeconds: 30
