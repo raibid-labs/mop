@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sql-app
+  namespace: sql-app
+  labels:
+    app: sql-app
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sql-app
+  template:
+    metadata:
+      labels:
+        app: sql-app
+        version: v1
+      annotations:
+        # OBI eBPF instrumentation annotation
+        obi.instrumentation/enabled: "true"
+        obi.instrumentation/protocols: "sql,http"
+    spec:
+      containers:
+        - name: sql-app
+          image: sql-app:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: sql-app-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sql-app-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: sql-app-config
+                  key: DB_NAME
+            - name: DB_SSLMODE
+              valueFrom:
+                configMapKeyRef:
+                  name: sql-app-config
+                  key: DB_SSLMODE
+            - name: DB_MAX_CONNS
+              valueFrom:
+                configMapKeyRef:
+                  name: sql-app-config
+                  key: DB_MAX_CONNS
+            - name: DB_MIN_CONNS
+              valueFrom:
+                configMapKeyRef:
+                  name: sql-app-config
+                  key: DB_MIN_CONNS
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: SERVER_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: sql-app-config
+                  key: SERVER_PORT
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sql-app
+  namespace: sql-app
+  labels:
+    app: sql-app
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: sql-app
