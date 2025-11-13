@@ -1,0 +1,94 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: http-load-generator
+  namespace: default
+  labels:
+    app: http-load-generator
+    component: load-testing
+spec:
+  # Run every 5 minutes
+  schedule: "*/5 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        app: http-load-generator
+        component: load-testing
+    spec:
+      template:
+        metadata:
+          labels:
+            app: http-load-generator
+            component: load-testing
+          annotations:
+            obi.instrumentation.enabled: "true"
+            obi.service.name: "http-load-generator"
+            obi.service.type: "load-generator"
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: load-generator
+            image: ghcr.io/raibid-labs/http-load-generator:latest
+            imagePullPolicy: Always
+            env:
+            - name: TARGET_URL
+              value: "http://http-api.default.svc.cluster.local/products"
+            - name: LOAD_PATTERN
+              value: "constant"
+            - name: RPS
+              value: "100"
+            - name: DURATION
+              value: "2m"
+            - name: CONCURRENCY
+              value: "10"
+            - name: TIMEOUT
+              value: "30s"
+            - name: METHOD
+              value: "GET"
+            - name: REPORT_FORMAT
+              value: "json"
+            - name: METRICS_PORT
+              value: "9090"
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: http-load-generator-metrics
+  namespace: default
+  labels:
+    app: http-load-generator
+spec:
+  selector:
+    app: http-load-generator
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: http-load-generator
+  namespace: default
+  labels:
+    app: http-load-generator
+spec:
+  selector:
+    matchLabels:
+      app: http-load-generator
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
