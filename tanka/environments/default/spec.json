@@ -2,13 +2,12 @@
   "apiVersion": "tanka.dev/v1alpha1",
   "kind": "Environment",
   "metadata": {
-    "name": "environments/production"
+    "name": "default"
   },
   "spec": {
     "apiServer": "https://kubernetes.default.svc",
     "namespace": "observability",
     "resourceDefaults": {},
-    "expectVersionSkew": false,
-    "injectLabels": true
+    "expectVersions": {}
   }
 }

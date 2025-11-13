@@ -1,140 +1,53 @@
 // Central configuration for MOP (Managed Observability Platform)
-// This file provides environment-specific and component-specific configuration
+// Single environment configuration
 
 {
   // MOP Platform version
   version:: '1.0.0',
 
-  // Environment configurations
-  environments:: {
-    dev: {
-      name: 'dev',
-      namespace: 'observability-dev',
-      domain: 'dev.mop.local',
-      replicas: {
-        alloy: 1,
-        tempo: 1,
-        mimir: 1,
-        loki: 1,
-        grafana: 1,
-      },
-      resources: {
-        // Dev uses minimal resources
-        alloy: {
-          requests: { cpu: '100m', memory: '256Mi' },
-          limits: { cpu: '500m', memory: '512Mi' },
-        },
-        tempo: {
-          requests: { cpu: '100m', memory: '512Mi' },
-          limits: { cpu: '1', memory: '2Gi' },
-        },
-        mimir: {
-          requests: { cpu: '200m', memory: '1Gi' },
-          limits: { cpu: '2', memory: '4Gi' },
-        },
-        loki: {
-          requests: { cpu: '100m', memory: '512Mi' },
-          limits: { cpu: '1', memory: '2Gi' },
-        },
-        grafana: {
-          requests: { cpu: '50m', memory: '128Mi' },
-          limits: { cpu: '200m', memory: '256Mi' },
-        },
-      },
-      storage: {
-        class: 'standard',
-        type: 'filesystem',  // Use local filesystem in dev
-      },
-    },
+  // Default namespace
+  namespace:: 'observability',
 
-    staging: {
-      name: 'staging',
-      namespace: 'observability-staging',
-      domain: 'staging.mop.local',
-      replicas: {
-        alloy: 2,
-        tempo: 2,
-        mimir: 3,
-        loki: 2,
-        grafana: 2,
-      },
-      resources: {
-        // Staging uses moderate resources
-        alloy: {
-          requests: { cpu: '500m', memory: '1Gi' },
-          limits: { cpu: '2', memory: '2Gi' },
-        },
-        tempo: {
-          requests: { cpu: '500m', memory: '2Gi' },
-          limits: { cpu: '2', memory: '4Gi' },
-        },
-        mimir: {
-          requests: { cpu: '1', memory: '4Gi' },
-          limits: { cpu: '4', memory: '8Gi' },
-        },
-        loki: {
-          requests: { cpu: '500m', memory: '2Gi' },
-          limits: { cpu: '2', memory: '4Gi' },
-        },
-        grafana: {
-          requests: { cpu: '100m', memory: '256Mi' },
-          limits: { cpu: '500m', memory: '512Mi' },
-        },
-      },
-      storage: {
-        class: 'fast-ssd',
-        type: 's3',
-        s3: {
-          endpoint: 's3.amazonaws.com',
-          bucket: 'mop-staging',
-        },
-      },
-    },
+  // Domain configuration
+  domain:: 'mop.local',
 
-    production: {
-      name: 'production',
-      namespace: 'observability',
-      domain: 'mop.example.com',
-      replicas: {
-        alloy: 3,
-        tempo: 3,
-        mimir: 3,
-        loki: 3,
-        grafana: 2,
-      },
-      resources: {
-        // Production uses full resources
-        alloy: {
-          requests: { cpu: '1', memory: '2Gi' },
-          limits: { cpu: '4', memory: '4Gi' },
-        },
-        tempo: {
-          requests: { cpu: '2', memory: '4Gi' },
-          limits: { cpu: '8', memory: '16Gi' },
-        },
-        mimir: {
-          requests: { cpu: '4', memory: '8Gi' },
-          limits: { cpu: '16', memory: '32Gi' },
-        },
-        loki: {
-          requests: { cpu: '2', memory: '4Gi' },
-          limits: { cpu: '8', memory: '16Gi' },
-        },
-        grafana: {
-          requests: { cpu: '500m', memory: '1Gi' },
-          limits: { cpu: '2', memory: '2Gi' },
-        },
-      },
-      storage: {
-        class: 'fast-ssd',
-        type: 's3',
-        s3: {
-          endpoint: 's3.amazonaws.com',
-          bucket: 'mop-production',
-          region: 'us-east-1',
-        },
-      },
+  // Component replicas
+  replicas:: {
+    alloy: 2,
+    tempo: 2,
+    mimir: 2,
+    loki: 2,
+    grafana: 2,
+  },
+
+  // Resource limits and requests
+  resources:: {
+    alloy: {
+      requests: { cpu: '500m', memory: '1Gi' },
+      limits: { cpu: '2', memory: '2Gi' },
     },
+    tempo: {
+      requests: { cpu: '500m', memory: '2Gi' },
+      limits: { cpu: '2', memory: '4Gi' },
+    },
+    mimir: {
+      requests: { cpu: '1', memory: '4Gi' },
+      limits: { cpu: '4', memory: '8Gi' },
+    },
+    loki: {
+      requests: { cpu: '500m', memory: '2Gi' },
+      limits: { cpu: '2', memory: '4Gi' },
+    },
+    grafana: {
+      requests: { cpu: '100m', memory: '256Mi' },
+      limits: { cpu: '500m', memory: '512Mi' },
+    },
+  },
+
+  // Storage configuration
+  storage:: {
+    class: 'standard',
+    type: 'filesystem',
   },
 
   // Component versions

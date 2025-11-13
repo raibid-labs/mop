@@ -780,13 +780,13 @@ print('✅ Grafana configured (visualization)')
 
 # Watch lib/ directory for Jsonnet changes
 watch_file('lib/')
-watch_file('environments/')
+watch_file('tanka/environments/')
 
 # Tanka apply on changes
 local_resource(
     'tanka-dev-sync',
-    'tk apply --dangerous-auto-approve environments/dev',
-    deps=['lib/', 'environments/dev/'],
+    'tk apply --dangerous-auto-approve tanka/environments/default',
+    deps=['tanka/lib/', 'tanka/environments/default/'],
     labels=['tanka', 'hot-reload'],
     resource_deps=['grafana', 'alloy', 'obi'],
     auto_init=False,
@@ -889,7 +889,7 @@ print("""
   • cleanup         - Remove all resources
 
 🔥 Hot Reload:
-  • Changes to lib/ and environments/ trigger Tanka sync
+  • Changes to tanka/lib/ and tanka/environments/ trigger Tanka sync
   • Use 'tanka-dev-sync' resource to manually apply
 
 📚 Documentation:

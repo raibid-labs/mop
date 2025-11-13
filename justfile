@@ -114,9 +114,9 @@ init:
     echo -e "{{GREEN}}Initializing Tanka environments...{{NC}}"
 
     for env in dev staging production; do
-        if [ ! -f "environments/${env}/main.jsonnet" ]; then
+        if [ ! -f "tanka/environments/${env}/main.jsonnet" ]; then
             echo "Initializing ${env} environment..."
-            cd "environments/${env}"
+            cd "tanka/environments/${env}"
             tk init --k8s={{K8S_VERSION}}
             cd ../..
         else
@@ -218,12 +218,12 @@ deploy ENV:
     set -euo pipefail
     echo -e "{{GREEN}}Deploying to {{ENV}}...{{NC}}"
 
-    if [ ! -d "environments/{{ENV}}" ]; then
+    if [ ! -d "tanka/environments/{{ENV}}" ]; then
         echo -e "{{RED}}Environment {{ENV}} does not exist{{NC}}"
         exit 1
     fi
 
-    cd "environments/{{ENV}}"
+    cd "tanka/environments/{{ENV}}"
     tk apply --dangerous-auto-approve
     cd ../..
 
@@ -234,7 +234,7 @@ deploy ENV:
 diff ENV:
     #!/usr/bin/env bash
     echo -e "{{BLUE}}Showing diff for {{ENV}}...{{NC}}"
-    cd "environments/{{ENV}}"
+    cd "tanka/environments/{{ENV}}"
     tk diff
     cd ../..
 
@@ -242,7 +242,7 @@ diff ENV:
 apply ENV:
     #!/usr/bin/env bash
     echo -e "{{YELLOW}}Applying configuration to {{ENV}}...{{NC}}"
-    cd "environments/{{ENV}}"
+    cd "tanka/environments/{{ENV}}"
     tk apply
     cd ../..
 
@@ -252,7 +252,7 @@ delete ENV:
     echo -e "{{RED}}Deleting resources from {{ENV}}...{{NC}}"
     read -p "Are you sure? (yes/no): " confirm
     if [ "$confirm" = "yes" ]; then
-        cd "environments/{{ENV}}"
+        cd "tanka/environments/{{ENV}}"
         tk delete
         cd ../..
         echo -e "{{GREEN}}✓ Resources deleted{{NC}}"
@@ -265,7 +265,7 @@ export ENV OUTPUT="./output":
     #!/usr/bin/env bash
     echo -e "{{BLUE}}Exporting manifests for {{ENV}} to {{OUTPUT}}...{{NC}}"
     mkdir -p "{{OUTPUT}}/{{ENV}}"
-    cd "environments/{{ENV}}"
+    cd "tanka/environments/{{ENV}}"
     tk export "../../{{OUTPUT}}/{{ENV}}"
     cd ../..
     echo -e "{{GREEN}}✓ Manifests exported to {{OUTPUT}}/{{ENV}}{{NC}}"
@@ -296,7 +296,7 @@ build:
 
     for env in dev staging production; do
         echo -e "{{BLUE}}Building ${env}...{{NC}}"
-        cd "environments/${env}"
+        cd "tanka/environments/${env}"
         tk show --dangerous-allow-redirect > /dev/null
         cd ../..
         echo -e "{{GREEN}}✓ ${env} builds successfully{{NC}}"
@@ -335,7 +335,7 @@ lint: validate
 
     # Check for common issues
     echo "Checking for hardcoded values..."
-    if grep -r "localhost" environments/ --include="*.jsonnet" --include="*.libsonnet"; then
+    if grep -r "localhost" tanka/environments/ --include="*.jsonnet" --include="*.libsonnet"; then
         echo -e "{{YELLOW}}Warning: Found hardcoded localhost references{{NC}}"
     fi
 
@@ -345,7 +345,7 @@ lint: validate
 watch ENV:
     #!/usr/bin/env bash
     echo -e "{{GREEN}}Watching for changes in {{ENV}}...{{NC}}"
-    cd "environments/{{ENV}}"
+    cd "tanka/environments/{{ENV}}"
     while true; do
         tk show --dangerous-allow-redirect | kubectl diff -f - || true
         sleep 5
@@ -634,13 +634,13 @@ new-env NAME:
     #!/usr/bin/env bash
     echo -e "{{GREEN}}Creating new environment: {{NAME}}{{NC}}"
 
-    if [ -d "environments/{{NAME}}" ]; then
+    if [ -d "tanka/environments/{{NAME}}" ]; then
         echo -e "{{RED}}Environment {{NAME}} already exists{{NC}}"
         exit 1
     fi
 
-    mkdir -p "environments/{{NAME}}"
-    cd "environments/{{NAME}}"
+    mkdir -p "tanka/environments/{{NAME}}"
+    cd "tanka/environments/{{NAME}}"
     tk init --k8s={{K8S_VERSION}}
     cd ../..
 
@@ -654,7 +654,7 @@ backup ENV:
     BACKUP_DIR="backups/${ENV}_${TIMESTAMP}"
     mkdir -p "$BACKUP_DIR"
 
-    cp -r "environments/{{ENV}}" "$BACKUP_DIR/"
+    cp -r "tanka/environments/{{ENV}}" "$BACKUP_DIR/"
     tar -czf "${BACKUP_DIR}.tar.gz" -C backups "$(basename $BACKUP_DIR)"
     rm -rf "$BACKUP_DIR"
 
@@ -664,7 +664,7 @@ backup ENV:
 show-env ENV:
     #!/usr/bin/env bash
     echo -e "{{BLUE}}Configuration for {{ENV}}:{{NC}}"
-    cd "environments/{{ENV}}"
+    cd "tanka/environments/{{ENV}}"
     tk show
     cd ../..
 
@@ -672,7 +672,7 @@ show-env ENV:
 list-envs:
     #!/usr/bin/env bash
     echo -e "{{BLUE}}Available environments:{{NC}}"
-    ls -1 environments/
+    ls -1 tanka/environments/
 
 # Check for common issues
 doctor:
@@ -697,7 +697,7 @@ doctor:
     # Check environments
     echo -e "{{BLUE}}Checking environments...{{NC}}"
     for env in dev staging production; do
-        if [ -f "environments/${env}/main.jsonnet" ]; then
+        if [ -f "tanka/environments/${env}/main.jsonnet" ]; then
             echo -e "{{GREEN}}✓ ${env} initialized{{NC}}"
         else
             echo -e "{{YELLOW}}⚠ ${env} not initialized{{NC}}"

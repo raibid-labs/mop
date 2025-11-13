@@ -1,5 +1,5 @@
-// Development environment for MOP
-// Uses minimal resources and local storage
+// Default environment for MOP
+// Single environment for all deployments
 
 local config = import '../../lib/config.libsonnet';
 local namespace = import '../../lib/kubernetes/namespace.libsonnet';
@@ -7,20 +7,19 @@ local rbac = import '../../lib/kubernetes/rbac.libsonnet';
 local storage = import '../../lib/kubernetes/storage.libsonnet';
 local network = import '../../lib/kubernetes/network.libsonnet';
 
-local rbacResources = rbac.new(config.environments.dev.namespace);
-local networkPolicies = network.new(config.environments.dev.namespace);
+local rbacResources = rbac.new(config.namespace);
+local networkPolicies = network.new(config.namespace);
 
 {
-  _config:: config.environments.dev,
+  _config:: config,
 
   // Create namespace with proper labels
   namespace: namespace.new(self._config.namespace, {
-    environment: 'dev',
     'mop.io/version': config.version,
   }),
 
-  // Storage classes for development
-  storage: storage.new()['dev-storage'],
+  // Storage configuration
+  storage: storage.new()['standard-storage'],
 
 } + rbacResources + networkPolicies
 
