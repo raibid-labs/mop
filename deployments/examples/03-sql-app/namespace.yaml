@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sql-app
+  labels:
+    app: sql-app
+    example: reference-implementation
+    protocol: sql
