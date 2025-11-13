@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: mop-examples
+
+resources:
+  - deployment.yaml
+  - configmap.yaml
+
+commonLabels:
+  app: grpc-auth-service
+  protocol: grpc
+  managed-by: kustomize
+
+images:
+  - name: grpc-auth-service
+    newName: grpc-auth-service
+    newTag: latest

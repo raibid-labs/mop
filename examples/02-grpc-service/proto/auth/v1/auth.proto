@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "github.com/raibid-labs/mop/examples/02-grpc-service/gen/go/auth/v1;authv1";
+
+import "google/protobuf/timestamp.proto";
+
+service AuthService {
+  // Unary RPC: User login
+  rpc Login(LoginRequest) returns (LoginResponse);
+
+  // Unary RPC: User logout
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+
+  // Unary RPC: Validate token
+  rpc ValidateToken(ValidateRequest) returns (ValidateResponse);
+
+  // Unary RPC: Refresh token
+  rpc RefreshToken(RefreshRequest) returns (RefreshResponse);
+
+  // Server streaming RPC: Subscribe to auth events
+  rpc StreamEvents(EventsRequest) returns (stream Event);
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+  string refresh_token = 2;
+  google.protobuf.Timestamp expires_at = 3;
+  User user = 4;
+}
+
+message LogoutRequest {
+  string token = 1;
+}
+
+message LogoutResponse {
+  bool success = 1;
+}
+
+message ValidateRequest {
+  string token = 1;
+}
+
+message ValidateResponse {
+  bool valid = 1;
+  User user = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message RefreshRequest {
+  string refresh_token = 1;
+}
+
+message RefreshResponse {
+  string token = 1;
+  google.protobuf.Timestamp expires_at = 2;
+}
+
+message EventsRequest {
+  repeated string event_types = 1;
+}
+
+message Event {
+  string event_type = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  map<string, string> metadata = 4;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  repeated string roles = 4;
+}
