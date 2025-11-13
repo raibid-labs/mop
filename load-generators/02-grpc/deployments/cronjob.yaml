@@ -1,0 +1,98 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: grpc-load-generator
+  namespace: default
+  labels:
+    app: grpc-load-generator
+    component: load-testing
+spec:
+  # Run every 5 minutes
+  schedule: "*/5 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        app: grpc-load-generator
+        component: load-testing
+    spec:
+      template:
+        metadata:
+          labels:
+            app: grpc-load-generator
+            component: load-testing
+          annotations:
+            obi.instrumentation.enabled: "true"
+            obi.service.name: "grpc-load-generator"
+            obi.service.type: "load-generator"
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: load-generator
+            image: ghcr.io/raibid-labs/grpc-load-generator:latest
+            imagePullPolicy: Always
+            env:
+            - name: TARGET
+              value: "grpc-auth-service.default.svc.cluster.local:9090"
+            - name: METHOD
+              value: "auth.v1.AuthService/Login"
+            - name: DATA
+              value: '{"username":"loadtest","password":"password"}'
+            - name: LOAD_PATTERN
+              value: "constant"
+            - name: RPS
+              value: "100"
+            - name: DURATION
+              value: "2m"
+            - name: CONCURRENCY
+              value: "10"
+            - name: TIMEOUT
+              value: "30s"
+            - name: REPORT_FORMAT
+              value: "json"
+            - name: METRICS_PORT
+              value: "9091"
+            - name: INSECURE
+              value: "true"
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpc-load-generator-metrics
+  namespace: default
+  labels:
+    app: grpc-load-generator
+spec:
+  selector:
+    app: grpc-load-generator
+  ports:
+  - name: metrics
+    port: 9091
+    targetPort: 9091
+    protocol: TCP
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: grpc-load-generator
+  namespace: default
+  labels:
+    app: grpc-load-generator
+spec:
+  selector:
+    matchLabels:
+      app: grpc-load-generator
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
