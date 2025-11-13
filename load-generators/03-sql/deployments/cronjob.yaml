@@ -1,0 +1,66 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sql-load-generator
+  namespace: default
+  labels:
+    app: sql-load-generator
+    component: load-testing
+spec:
+  schedule: "*/5 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        app: sql-load-generator
+        component: load-testing
+    spec:
+      template:
+        metadata:
+          labels:
+            app: sql-load-generator
+            component: load-testing
+          annotations:
+            obi.instrumentation.enabled: "true"
+            obi.service.name: "sql-load-generator"
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: load-generator
+            image: ghcr.io/raibid-labs/sql-load-generator:latest
+            imagePullPolicy: Always
+            env:
+            - name: DB_HOST
+              value: "postgres.default.svc.cluster.local"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: "postgres"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: password
+            - name: DB_NAME
+              value: "orders"
+            - name: LOAD_PATTERN
+              value: "constant"
+            - name: TPS
+              value: "100"
+            - name: DURATION
+              value: "2m"
+            - name: CLIENTS
+              value: "10"
+            - name: QUERY_TYPE
+              value: "mixed"
+            - name: METRICS_PORT
+              value: "9092"
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 256Mi
