@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: redis-load-generator
+  namespace: default
+  labels:
+    app: redis-load-generator
+    component: load-testing
+spec:
+  schedule: "*/5 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        app: redis-load-generator
+        component: load-testing
+    spec:
+      template:
+        metadata:
+          labels:
+            app: redis-load-generator
+            component: load-testing
+          annotations:
+            obi.instrumentation.enabled: "true"
+            obi.service.name: "redis-load-generator"
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: load-generator
+            image: ghcr.io/raibid-labs/redis-load-generator:latest
+            imagePullPolicy: Always
+            env:
+            - name: REDIS_ADDR
+              value: "redis.default.svc.cluster.local:6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: password
+                  optional: true
+            - name: LOAD_PATTERN
+              value: "constant"
+            - name: RPS
+              value: "1000"
+            - name: DURATION
+              value: "2m"
+            - name: CLIENTS
+              value: "10"
+            - name: OP_TYPE
+              value: "mixed"
+            - name: METRICS_PORT
+              value: "9093"
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 256Mi

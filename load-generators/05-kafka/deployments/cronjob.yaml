@@ -1,0 +1,59 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kafka-load-generator
+  namespace: default
+  labels:
+    app: kafka-load-generator
+    component: load-testing
+spec:
+  schedule: "*/5 * * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    metadata:
+      labels:
+        app: kafka-load-generator
+        component: load-testing
+    spec:
+      template:
+        metadata:
+          labels:
+            app: kafka-load-generator
+            component: load-testing
+          annotations:
+            obi.instrumentation.enabled: "true"
+            obi.service.name: "kafka-load-generator"
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: load-generator
+            image: ghcr.io/raibid-labs/kafka-load-generator:latest
+            imagePullPolicy: Always
+            env:
+            - name: KAFKA_BROKERS
+              value: "kafka.default.svc.cluster.local:9092"
+            - name: KAFKA_TOPIC
+              value: "load-test"
+            - name: LOAD_PATTERN
+              value: "constant"
+            - name: MPS
+              value: "100"
+            - name: DURATION
+              value: "2m"
+            - name: PRODUCERS
+              value: "3"
+            - name: MESSAGE_SIZE
+              value: "1024"
+            - name: COMPRESSION
+              value: "snappy"
+            - name: METRICS_PORT
+              value: "9094"
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 256Mi

@@ -1,0 +1,249 @@
+version: '3.8'
+
+services:
+  # HTTP API Example Service
+  http-api:
+    build:
+      context: ../examples/01-http-api
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - load-test
+
+  # HTTP Load Generator
+  http-load-generator:
+    build:
+      context: ./01-http
+      dockerfile: Dockerfile
+    depends_on:
+      http-api:
+        condition: service_healthy
+    environment:
+      TARGET_URL: http://http-api:8080/products
+      LOAD_PATTERN: constant
+      RPS: 100
+      DURATION: 5m
+      CONCURRENCY: 10
+      TIMEOUT: 30s
+      METHOD: GET
+      REPORT_FORMAT: text
+      METRICS_PORT: 9090
+    ports:
+      - "9090:9090"
+    networks:
+      - load-test
+
+  # gRPC Auth Service
+  grpc-service:
+    build:
+      context: ../examples/02-grpc-service
+      dockerfile: Dockerfile
+    ports:
+      - "9090:9090"
+    environment:
+      PORT: 9090
+      LOG_LEVEL: info
+    healthcheck:
+      test: ["CMD", "grpc-health-probe", "-addr=:9090"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - load-test
+
+  # gRPC Load Generator
+  grpc-load-generator:
+    build:
+      context: ./02-grpc
+      dockerfile: Dockerfile
+    depends_on:
+      - grpc-service
+    environment:
+      TARGET: grpc-service:9090
+      METHOD: auth.v1.AuthService/Login
+      DATA: '{"username":"loadtest","password":"password"}'
+      LOAD_PATTERN: constant
+      RPS: 100
+      DURATION: 5m
+      CONCURRENCY: 10
+      INSECURE: "true"
+      METRICS_PORT: 9091
+    ports:
+      - "9091:9091"
+    networks:
+      - load-test
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: orders
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - load-test
+
+  # SQL Load Generator
+  sql-load-generator:
+    build:
+      context: ./03-sql
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: orders
+      LOAD_PATTERN: constant
+      TPS: 100
+      DURATION: 5m
+      CLIENTS: 10
+      QUERY_TYPE: mixed
+      METRICS_PORT: 9092
+    ports:
+      - "9092:9092"
+    networks:
+      - load-test
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - load-test
+
+  # Redis Load Generator
+  redis-load-generator:
+    build:
+      context: ./04-redis
+      dockerfile: Dockerfile
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ""
+      REDIS_DB: 0
+      LOAD_PATTERN: constant
+      RPS: 1000
+      DURATION: 5m
+      CLIENTS: 10
+      OP_TYPE: mixed
+      METRICS_PORT: 9093
+    ports:
+      - "9093:9093"
+    networks:
+      - load-test
+
+  # Kafka (Redpanda for simplicity)
+  kafka:
+    image: vectorized/redpanda:latest
+    command:
+      - redpanda
+      - start
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --overprovisioned
+      - --node-id 0
+      - --check=false
+      - --kafka-addr PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://kafka:9092
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - load-test
+
+  # Kafka Load Generator
+  kafka-load-generator:
+    build:
+      context: ./05-kafka
+      dockerfile: Dockerfile
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC: load-test
+      LOAD_PATTERN: constant
+      MPS: 100
+      DURATION: 5m
+      PRODUCERS: 3
+      MESSAGE_SIZE: 1024
+      COMPRESSION: snappy
+      METRICS_PORT: 9094
+    ports:
+      - "9094:9094"
+    networks:
+      - load-test
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9095:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - load-test
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - load-test
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  load-test:
+    driver: bridge

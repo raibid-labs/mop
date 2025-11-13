@@ -1,0 +1,39 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'http-load-generator'
+    static_configs:
+      - targets: ['http-load-generator:9090']
+        labels:
+          service: 'http-load-generator'
+          protocol: 'http'
+
+  - job_name: 'grpc-load-generator'
+    static_configs:
+      - targets: ['grpc-load-generator:9091']
+        labels:
+          service: 'grpc-load-generator'
+          protocol: 'grpc'
+
+  - job_name: 'sql-load-generator'
+    static_configs:
+      - targets: ['sql-load-generator:9092']
+        labels:
+          service: 'sql-load-generator'
+          protocol: 'sql'
+
+  - job_name: 'redis-load-generator'
+    static_configs:
+      - targets: ['redis-load-generator:9093']
+        labels:
+          service: 'redis-load-generator'
+          protocol: 'redis'
+
+  - job_name: 'kafka-load-generator'
+    static_configs:
+      - targets: ['kafka-load-generator:9094']
+        labels:
+          service: 'kafka-load-generator'
+          protocol: 'kafka'
