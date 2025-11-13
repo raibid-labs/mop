@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: http-api
+  labels:
+    app: http-api
+    protocol: http
+    example: product-catalog
+    version: v1.0.0
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: http-api
+  template:
+    metadata:
+      labels:
+        app: http-api
+        protocol: http
+        version: v1.0.0
+      annotations:
+        obi.io/enabled: "true"
+        obi.io/protocol: "http"
+        obi.io/port: "8080"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: http-api
+        image: http-api:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "8080"
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: http-api-config
+              key: LOG_LEVEL
+        - name: RATE_LIMIT_RPS
+          valueFrom:
+            configMapKeyRef:
+              name: http-api-config
+              key: RATE_LIMIT_RPS
+        envFrom:
+        - configMapRef:
+            name: http-api-config
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 0
+          periodSeconds: 2
+          timeoutSeconds: 3
+          failureThreshold: 30
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+      securityContext:
+        fsGroup: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault

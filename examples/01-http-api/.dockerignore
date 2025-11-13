@@ -1,0 +1,34 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+docs/
+
+# Tests
+tests/
+*_test.go
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kubernetes
+deployments/
