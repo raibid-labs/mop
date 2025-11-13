@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kafka-streaming
+  labels:
+    app: kafka-streaming
+    example: "05"
+    protocol: kafka

@@ -1,0 +1,159 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-consumer-notifications
+  namespace: kafka-streaming
+  labels:
+    app: kafka-consumer
+    consumer-type: notifications
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kafka-consumer
+      consumer-type: notifications
+  template:
+    metadata:
+      labels:
+        app: kafka-consumer
+        consumer-type: notifications
+      annotations:
+        # OBI instrumentation annotations
+        obi.instrumentation/inject: "true"
+        obi.instrumentation/protocol: "kafka"
+    spec:
+      containers:
+      - name: consumer
+        image: kafka-streaming-consumer:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: CONSUMER_GROUP
+          value: "notifications-group"
+        - name: CONSUMER_TYPE
+          value: "notifications"
+        - name: LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "ps aux | grep consumer | grep -v grep"
+          initialDelaySeconds: 10
+          periodSeconds: 30
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-consumer-analytics
+  namespace: kafka-streaming
+  labels:
+    app: kafka-consumer
+    consumer-type: analytics
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kafka-consumer
+      consumer-type: analytics
+  template:
+    metadata:
+      labels:
+        app: kafka-consumer
+        consumer-type: analytics
+      annotations:
+        # OBI instrumentation annotations
+        obi.instrumentation/inject: "true"
+        obi.instrumentation/protocol: "kafka"
+    spec:
+      containers:
+      - name: consumer
+        image: kafka-streaming-consumer:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: CONSUMER_GROUP
+          value: "analytics-group"
+        - name: CONSUMER_TYPE
+          value: "analytics"
+        - name: LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "ps aux | grep consumer | grep -v grep"
+          initialDelaySeconds: 10
+          periodSeconds: 30
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-consumer-orders
+  namespace: kafka-streaming
+  labels:
+    app: kafka-consumer
+    consumer-type: orders
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-consumer
+      consumer-type: orders
+  template:
+    metadata:
+      labels:
+        app: kafka-consumer
+        consumer-type: orders
+      annotations:
+        # OBI instrumentation annotations
+        obi.instrumentation/inject: "true"
+        obi.instrumentation/protocol: "kafka"
+    spec:
+      containers:
+      - name: consumer
+        image: kafka-streaming-consumer:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: CONSUMER_GROUP
+          value: "orders-processor-group"
+        - name: CONSUMER_TYPE
+          value: "orders"
+        - name: LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "ps aux | grep consumer | grep -v grep"
+          initialDelaySeconds: 10
+          periodSeconds: 30
