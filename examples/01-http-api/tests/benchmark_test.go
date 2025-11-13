@@ -13,6 +13,7 @@ import (
 
 	"github.com/raibid-labs/mop/examples/01-http-api/internal/handlers"
 	"github.com/raibid-labs/mop/examples/01-http-api/internal/middleware"
+	"github.com/raibid-labs/mop/examples/01-http-api/internal/models"
 	"github.com/raibid-labs/mop/examples/01-http-api/internal/store"
 )
 
@@ -48,15 +49,7 @@ func setupBenchmarkRouter() *gin.Engine {
 
 	// Pre-populate with some data
 	for i := 0; i < 100; i++ {
-		productStore.Create(&struct {
-			ID          string
-			Name        string
-			Description string
-			Price       float64
-			Stock       int
-			CreatedAt   time.Time
-			UpdatedAt   time.Time
-		}{
+		productStore.Create(&models.Product{
 			Name:  "Benchmark Product",
 			Price: 99.99,
 			Stock: 100,

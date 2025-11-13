@@ -183,7 +183,7 @@ func testSearch(t *testing.T) {
 	}
 
 	// Search for "Apple"
-	resp, err := http.Get(baseURL + "/search?q=SearchTest Apple")
+	resp, err := http.Get(baseURL + "/search?q=SearchTest%20Apple")
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
