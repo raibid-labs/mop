@@ -1,0 +1,171 @@
+{
+  "$schema": "https://claude.ai/schemas/project-config.json",
+  "version": "1.0.0",
+  "extends": "@raibid-labs/base-project.json",
+
+  "name": "mop",
+  "displayName": "MOP - Managed Observability Platform",
+  "description": "Production-ready observability stack using OBI, Grafana, and Tanka for Infrastructure as Code",
+  "repository": "raibid-labs/mop",
+
+  "type": "infrastructure",
+  "category": "iac-kubernetes",
+
+  "keywords": [
+    "observability",
+    "grafana",
+    "opentelemetry",
+    "obi",
+    "kubernetes",
+    "tanka",
+    "jsonnet",
+    "helm",
+    "iac",
+    "monitoring",
+    "tracing",
+    "metrics",
+    "logs"
+  ],
+
+  "technology": {
+    "iac": "tanka",
+    "orchestration": "kubernetes",
+    "languages": ["jsonnet", "nushell"],
+    "tools": ["just", "helm", "tilt"],
+    "components": [
+      "OpenTelemetry Backend Initiative (OBI)",
+      "Grafana Alloy",
+      "Tempo",
+      "Mimir",
+      "Loki",
+      "Grafana"
+    ]
+  },
+
+  "rules": {
+    "infrastructure": [
+      "Use Tanka (Jsonnet + Helm) for all Kubernetes deployments",
+      "Follow environment-based configuration (dev, staging, production)",
+      "Vendor Helm charts locally for version control",
+      "Implement eBPF-based instrumentation with OBI for minimal overhead",
+      "Use Grafana Alloy for advanced telemetry sampling and routing",
+      "Prefer Mimir over Prometheus for scalable metrics storage",
+      "Maintain trace-log-metric correlation across observability stack"
+    ],
+    "iac": [
+      "All configurations must be declarative Jsonnet",
+      "Use lib/ directory for reusable Jsonnet libraries",
+      "Environment-specific overrides go in environments/ directory",
+      "Never hardcode cluster-specific values - use config.libsonnet",
+      "Validate all manifests before deployment",
+      "Test changes locally with Tilt before production deployment"
+    ],
+    "observability": [
+      "OBI must run as DaemonSet for full cluster coverage",
+      "Configure adaptive sampling for cost optimization",
+      "Set up correlation between traces, logs, and metrics",
+      "Create dashboards for each component's health",
+      "Implement SLO-based alerting",
+      "Document runbooks for common operational scenarios"
+    ]
+  },
+
+  "workflows": {
+    "development": {
+      "local": "tilt up",
+      "validate": "just validate",
+      "test": "just test",
+      "deploy-dev": "just deploy dev"
+    },
+    "deployment": {
+      "diff": "just diff <environment>",
+      "apply": "just deploy <environment>",
+      "rollback": "just rollback <environment>"
+    },
+    "observability": {
+      "grafana": "just grafana-port-forward",
+      "logs": "just logs <component>",
+      "metrics": "just metrics <component>"
+    }
+  },
+
+  "architecture": {
+    "pattern": "observability-platform",
+    "deployment": "kubernetes-daemonset-deployment",
+    "layers": [
+      "eBPF Instrumentation (OBI)",
+      "Telemetry Pipeline (Grafana Alloy)",
+      "Storage Backends (Tempo, Mimir, Loki)",
+      "Visualization (Grafana)"
+    ],
+    "dataFlow": "Application → OBI (eBPF) → Alloy → Backends → Grafana"
+  },
+
+  "agents": {
+    "specialized": [
+      "iac-specialist",
+      "k8s-expert",
+      "observability-engineer",
+      "jsonnet-developer",
+      "sre"
+    ],
+    "sparc": ["architecture", "specification", "refinement"]
+  },
+
+  "fileOrganization": {
+    "environments/": "Tanka environments (dev, staging, production)",
+    "lib/": "Reusable Jsonnet libraries",
+    "k8s/": "Additional Kubernetes manifests",
+    "charts/": "Vendored Helm charts",
+    "vendor/": "Jsonnet dependencies",
+    "scripts/": "Automation scripts (preferably Nushell)",
+    "tests/": "Integration tests and validation scripts",
+    "docs/": "Documentation organized by topic"
+  },
+
+  "guidelines": {
+    "jsonnet": [
+      "Use local keyword for intermediate variables",
+      "Keep Jsonnet files focused and under 300 lines",
+      "Extract common patterns to lib/ directory",
+      "Use function parameters for environment-specific values",
+      "Comment complex transformations"
+    ],
+    "kubernetes": [
+      "Use namespaces to organize components",
+      "Apply resource limits and requests",
+      "Use ConfigMaps and Secrets appropriately",
+      "Implement probes for all services",
+      "Use anti-affinity for distributed components"
+    ],
+    "grafana": [
+      "Create dashboards as code (Jsonnet)",
+      "Organize panels by function",
+      "Use variables for flexibility",
+      "Implement drill-down capabilities",
+      "Document panel queries"
+    ]
+  },
+
+  "relatedProjects": [
+    "raibid-labs/hack-k8s",
+    "raibid-labs/dgx-spark"
+  ],
+
+  "documentation": {
+    "architecture": "docs/architecture/",
+    "workstreams": "docs/workstreams/",
+    "research": "docs/research/",
+    "runbooks": "docs/deployment/"
+  },
+
+  "cicd": {
+    "platform": "github-actions",
+    "validation": [
+      "jsonnet formatting check",
+      "manifest validation",
+      "integration tests",
+      "security scanning"
+    ]
+  }
+}
