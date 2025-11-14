@@ -1,16 +1,13 @@
 {
   "$schema": "https://claude.ai/schemas/project-config.json",
   "version": "1.0.0",
-  "extends": "@raibid-labs/base-project.json",
-
+  "extends": "github:raibid-labs/workspace/.claude/base-project.json",
   "name": "mop",
   "displayName": "MOP - Managed Observability Platform",
   "description": "Production-ready observability stack using OBI, Grafana, and Tanka for Infrastructure as Code",
   "repository": "raibid-labs/mop",
-
   "type": "infrastructure",
   "category": "iac-kubernetes",
-
   "keywords": [
     "observability",
     "grafana",
@@ -26,12 +23,18 @@
     "metrics",
     "logs"
   ],
-
   "technology": {
     "iac": "tanka",
     "orchestration": "kubernetes",
-    "languages": ["jsonnet", "nushell"],
-    "tools": ["just", "helm", "tilt"],
+    "languages": [
+      "jsonnet",
+      "nushell"
+    ],
+    "tools": [
+      "just",
+      "helm",
+      "tilt"
+    ],
     "components": [
       "OpenTelemetry Backend Initiative (OBI)",
       "Grafana Alloy",
@@ -41,7 +44,6 @@
       "Grafana"
     ]
   },
-
   "rules": {
     "infrastructure": [
       "Use Tanka (Jsonnet + Helm) for all Kubernetes deployments",
@@ -69,7 +71,6 @@
       "Document runbooks for common operational scenarios"
     ]
   },
-
   "workflows": {
     "development": {
       "local": "tilt up",
@@ -88,7 +89,6 @@
       "metrics": "just metrics <component>"
     }
   },
-
   "architecture": {
     "pattern": "observability-platform",
     "deployment": "kubernetes-daemonset-deployment",
@@ -100,7 +100,6 @@
     ],
     "dataFlow": "Application → OBI (eBPF) → Alloy → Backends → Grafana"
   },
-
   "agents": {
     "specialized": [
       "iac-specialist",
@@ -109,9 +108,12 @@
       "jsonnet-developer",
       "sre"
     ],
-    "sparc": ["architecture", "specification", "refinement"]
+    "sparc": [
+      "architecture",
+      "specification",
+      "refinement"
+    ]
   },
-
   "fileOrganization": {
     "environments/": "Tanka environments (dev, staging, production)",
     "lib/": "Reusable Jsonnet libraries",
@@ -122,7 +124,6 @@
     "tests/": "Integration tests and validation scripts",
     "docs/": "Documentation organized by topic"
   },
-
   "guidelines": {
     "jsonnet": [
       "Use local keyword for intermediate variables",
@@ -146,19 +147,16 @@
       "Document panel queries"
     ]
   },
-
   "relatedProjects": [
     "raibid-labs/hack-k8s",
     "raibid-labs/dgx-spark"
   ],
-
   "documentation": {
     "architecture": "docs/architecture/",
     "workstreams": "docs/workstreams/",
     "research": "docs/research/",
     "runbooks": "docs/deployment/"
   },
-
   "cicd": {
     "platform": "github-actions",
     "validation": [
